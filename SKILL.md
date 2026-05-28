@@ -2,8 +2,8 @@
 name: wechat-article-html
 description: >
   将上传的 Word 文档（.docx）转化为微信公众号兼容的全内联式 HTML 文件。提取文档正文结构与内嵌图片，生成自包含的 HTML，可直接在浏览器打开后复制粘贴至公众号编辑器。
-  提供四种主题风格：橙皮书（技术白皮书暖色调）、学术深蓝（学术期刊冷色调）、Nature（极简学术风）、Cell（期刊封面风）。
-  触发场景：用户上传 .docx 并提到"公众号"、"微信"、"HTML"、"排版"、"橙皮书"、"深蓝"、"nature"、"cell"、"wechat html"时，必须调用本skill。
+  提供五种主题风格：橙皮书（技术白皮书暖色调）、学术深蓝（学术期刊冷色调）、莫兰迪淡雅（小红书轻柔风）、Nature（极简学术风）、Cell（期刊封面风）。
+  触发场景：用户上传 .docx 并提到"公众号"、"微信"、"HTML"、"排版"、"橙皮书"、"深蓝"、"莫兰迪"、"nature"、"cell"、"wechat html"时，必须调用本skill。
 ---
 
 # WeChat Article HTML Skill
@@ -35,7 +35,7 @@ ls /sessions/*/mnt/uploads/*.docx 2>/dev/null || ls /sessions/*/mnt/uploads/
 
 ### Step 2：让用户选择主题
 
-向用户展示四个选项，等待选择后再继续：
+向用户展示五个选项，等待选择后再继续：
 
 **主题A：橙皮书 · 技术白皮书风** `--theme orange`
 > 底色 `#fffbf0`，橙红强调色 `#e85d04`，衬线感标题，技术深度感强
@@ -47,12 +47,17 @@ ls /sessions/*/mnt/uploads/*.docx 2>/dev/null || ls /sessions/*/mnt/uploads/
 > 特点：目录、数据统计卡片、双色调顶部色带
 > 适合：综述类、机制讲解、基础科学、方法论介绍
 
-**主题C：Nature · 极简学术风** `--theme nature`
+**主题C：莫兰迪淡雅 · 小红书风** `--theme morandi`
+> 底色 `#faf7f4`，莫兰迪玫瑰 `#c9847a` × 矿绿 `#7a9e8e`，大圆角胶囊标签，轻柔温润
+> 特点：目录、数据统计卡片、双层色带、胶囊圆角系列徽标
+> 适合：科普轻读、健康资讯、前沿速递、小红书风格推文
+
+**主题D：Nature · 极简学术风** `--theme nature`
 > 底色 `#fafafa`，黑白灰三色，衬线体主导，极细线条
 > 特点：无目录、无数据卡片、大号装饰章节编号（01/02…）、下划线关键词
 > 适合：文献深度解读、数据分析报告、严肃长篇综述
 
-**主题D：Cell · 期刊封面风** `--theme cell`
+**主题E：Cell · 期刊封面风** `--theme cell`
 > 底色 `#edf2f7`，深蓝章节头色块，白色正文区域，大胆视觉对比
 > 特点：无目录、无数据卡片、深蓝 SECTION NN 色块标题、蓝色圆点 H3、阴影图片
 > 适合：临床数据解读（AACR/ESMO）、产品管线分析、行业格局报告
@@ -71,7 +76,7 @@ find /sessions/*/mnt/CC_公众号内容创作/ -name "*.jpg" -o -name "*.png" | 
 ```bash
 python3 /path/to/skill/scripts/convert.py \
   --input /path/to/uploaded.docx \
-  --theme orange  # 或 blue / nature / cell
+  --theme orange  # 或 blue / morandi / nature / cell
   --output /sessions/*/mnt/CC_公众号内容创作/[文章标题]_[主题].html \
   --qr /path/to/qr.jpg  # 可选
 ```
@@ -175,6 +180,7 @@ grep -c "base64" output.html  # 应 > 0（如原文有图）
 |------|-------------|
 | orange | §N 编号 + 橙色下划线 |
 | blue | §N 编号 + 蓝色下划线 |
+| morandi | §N 编号 + 玫瑰色下划线，H3 矿绿左竖线 |
 | nature | 大号装饰编号（01/02…）+ 轻字重标题 |
 | cell | 深蓝色块 "SECTION NN" + 白色标题文字 |
 
@@ -219,6 +225,7 @@ for rel in doc.part.rels.values():
 
 - `references/theme_orange_book.md` — 橙皮书完整内联样式规范
 - `references/theme_academic_blue.md` — 学术深蓝完整内联样式规范
+- `references/theme_morandi.md` — 莫兰迪淡雅完整内联样式规范
 - `references/theme_nature.md` — Nature 极简学术完整内联样式规范
 - `references/theme_cell.md` — Cell 期刊封面完整内联样式规范
 
