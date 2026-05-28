@@ -83,7 +83,7 @@ THEMES = {
     "blue": {
         "name": "学术深蓝",
         "label": "学术综述",
-        "body": "margin:0;padding:0;background:#eef2f7;font-family:'Georgia','Times New Roman','Songti SC','SimSun',serif;color:#0f172a;line-height:1.85;",
+        "body": "margin:0;padding:0;background:#eef2f7;font-family:-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif;color:#0f172a;line-height:1.85;",
         "container": "max-width:680px;margin:0 auto;background:#f8fafd;",
         "top_band": "background:#1e3a5f;height:6px;",
         "top_band2": "background:#2563eb;height:2px;",
@@ -103,7 +103,7 @@ THEMES = {
         "abstract_box": "margin:0 28px 20px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;padding:16px 20px;",
         "abstract_label": "font-size:10px;font-weight:700;color:#1e3a5f;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;font-family:-apple-system,sans-serif;",
         "abstract_label_text": "ABSTRACT · 摘要",
-        "abstract_text": "font-size:13px;color:#1e293b;line-height:1.8;margin:0;font-family:Georgia,'Songti SC',serif;",
+        "abstract_text": "font-size:13px;color:#1e293b;line-height:1.8;margin:0;",
         "keyword_wrap": "padding:0 28px 20px;display:flex;flex-wrap:wrap;gap:6px;",
         "keyword": "font-size:11px;padding:3px 10px;background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;border-radius:3px;font-family:-apple-system,sans-serif;",
         "toc_wrap": "margin:0 28px 28px;border:1px solid #bfdbfe;border-radius:6px;overflow:hidden;",
@@ -117,13 +117,13 @@ THEMES = {
         "h2": "font-size:18px;font-weight:700;color:#0f172a;line-height:1.4;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #1e3a5f;font-family:Georgia,'Songti SC',serif;",
         "h2_num": "color:#2563eb;font-size:13px;font-weight:700;display:block;margin-bottom:4px;font-family:-apple-system,sans-serif;letter-spacing:0.05em;",
         "h3": "font-size:15px;font-weight:700;color:#1e3a5f;margin:0 0 12px;padding-left:10px;border-left:3px solid #2563eb;font-family:Georgia,'Songti SC',serif;",
-        "p": "font-size:15px;color:#1e293b;line-height:1.9;margin:0 0 16px;text-align:justify;font-family:Georgia,'Songti SC',serif;",
+        "p": "font-size:15px;color:#1e293b;line-height:1.9;margin:0 0 16px;text-align:justify;",
         "callout_wrap": "background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:0 6px 6px 0;padding:14px 18px;margin:18px 0;",
         "callout_label": "font-size:10px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:-apple-system,sans-serif;",
-        "callout_text": "font-size:14px;color:#334e7a;line-height:1.75;font-family:Georgia,'Songti SC',serif;",
+        "callout_text": "font-size:14px;color:#334e7a;line-height:1.75;",
         "figure_wrap": "background:#e8f0fb;border-radius:6px;padding:12px;margin:20px 0;",
         "figure_caption": "font-size:11px;color:#4a6fa5;text-align:center;margin:8px 0 0;line-height:1.4;font-family:-apple-system,sans-serif;",
-        "li": "font-size:14px;color:#1e293b;line-height:1.85;margin-bottom:6px;font-family:Georgia,'Songti SC',serif;",
+        "li": "font-size:14px;color:#1e293b;line-height:1.85;margin-bottom:6px;",
         "qr_wrap": "padding:24px 28px;text-align:center;background:#f0f7ff;border-top:1px solid #bfdbfe;",
         "qr_caption": "font-size:13px;color:#334e7a;margin:0 0 12px;font-family:-apple-system,sans-serif;",
         "qr_img": "width:160px;height:160px;border:3px solid #2563eb;border-radius:8px;display:block;margin:0 auto 12px;",
@@ -447,7 +447,7 @@ def build_html(items, theme_name="orange", title="文章标题", subtitle="",
     if len(stat_candidates) >= 2:
         a(f'<!-- 数据卡片 -->')
         a(f'<div style="{t["stat_row"]}">')
-        for num, label in stat_candidates[:3]:
+        for num, label in stat_candidates[:2]:
             a(f'  <div style="{t["stat_card"]}">')
             a(f'    <div style="{t["stat_num"]}">{esc(num)}</div>')
             a(f'    <div style="{t["stat_label"]}">{esc(label)}</div>')
