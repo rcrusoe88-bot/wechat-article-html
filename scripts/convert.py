@@ -133,6 +133,59 @@ THEMES = {
         "series_label": "RNAscript · 学术综述",
         "vol_text": "Vol.{vol} · {year}",
     },
+    "morandi": {
+        "name": "莫兰迪淡雅",
+        "label": "前沿解读",
+        "body": "margin:0;padding:0;background:#ede8e1;font-family:-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif;color:#3d2c2c;line-height:1.85;",
+        "container": "max-width:680px;margin:0 auto;background:#faf7f4;",
+        "top_band": "background:#c9847a;height:5px;",
+        "top_band2": "background:#b3cfc5;height:3px;",
+        "bottom_band1": "background:#b3cfc5;height:3px;margin-top:8px;",
+        "bottom_band2": "background:#c9847a;height:5px;",
+        "header_wrap": "padding:14px 28px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8ddd8;",
+        "header_label": "font-size:11px;font-weight:700;color:#c9847a;letter-spacing:0.12em;",
+        "header_vol": "font-size:11px;color:#b0998f;",
+        "series_badge": "display:inline-block;background:#c9847a;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:4px 14px;border-radius:20px;margin-bottom:16px;",
+        "h1": "font-size:22px;font-weight:800;color:#3d2c2c;line-height:1.4;margin:0 0 14px;padding-bottom:16px;border-bottom:3px solid #c9847a;",
+        "subtitle": "font-size:14px;color:#9a7a78;line-height:1.65;margin:0 0 14px;font-style:italic;",
+        "source_box": "font-size:11px;color:#b0998f;background:#f2ece7;border-left:3px solid #c9847a;padding:8px 12px;border-radius:0 6px 6px 0;margin-bottom:24px;",
+        "stat_row": "display:flex;gap:12px;margin:0 28px 24px;",
+        "stat_card": "flex:1;background:#f5f0ec;border:1px solid #ddd0c8;border-radius:12px;padding:14px 10px;text-align:center;",
+        "stat_num": "font-size:24px;font-weight:800;color:#c9847a;line-height:1;margin-bottom:4px;",
+        "stat_label": "font-size:10px;color:#9a7a78;line-height:1.4;",
+        "abstract_box": "margin:0 28px 20px;background:#f5f0ec;border:1px solid #ddd0c8;border-radius:12px;padding:16px 20px;",
+        "abstract_label": "font-size:10px;font-weight:700;color:#c9847a;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;",
+        "abstract_label_text": "摘要 Abstract",
+        "abstract_text": "font-size:13px;color:#4a3a38;line-height:1.8;margin:0;",
+        "keyword_wrap": "padding:0 28px 20px;display:flex;flex-wrap:wrap;gap:6px;",
+        "keyword": "font-size:11px;padding:4px 12px;background:#faf0ee;border:1px solid #c9847a;color:#c9847a;border-radius:20px;",
+        "toc_wrap": "margin:0 28px 28px;border:1px solid #ddd0c8;border-radius:12px;overflow:hidden;",
+        "toc_header": "background:#c9847a;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:10px 18px;",
+        "toc_header_text": "目录 Contents",
+        "toc_row": "display:flex;justify-content:space-between;align-items:center;padding:9px 18px;border-bottom:1px solid #ece4e0;font-size:13px;color:#3d2c2c;",
+        "toc_row_alt": "display:flex;justify-content:space-between;align-items:center;padding:9px 18px;border-bottom:1px solid #ece4e0;font-size:13px;color:#3d2c2c;background:#fdf8f6;",
+        "toc_num": "font-size:11px;font-weight:700;color:#c9847a;",
+        "divider": "height:2px;background:linear-gradient(to right,#c9847a 30%,#e8d4cf 100%);margin:0 28px 28px;border-radius:1px;",
+        "section_pad": "padding:0 28px 32px;",
+        "h2": "font-size:18px;font-weight:800;color:#3d2c2c;line-height:1.4;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #c9847a;",
+        "h2_num": "color:#c9847a;font-size:13px;font-weight:700;display:block;margin-bottom:4px;letter-spacing:0.05em;",
+        "h3": "font-size:15px;font-weight:700;color:#7a9e8e;margin:0 0 12px;padding-left:12px;border-left:3px solid #7a9e8e;",
+        "p": "font-size:15px;color:#4a3a38;line-height:1.95;margin:0 0 16px;text-align:justify;",
+        "callout_wrap": "background:#faf0ee;border:1px solid #ddd0c8;border-left:4px solid #c9847a;border-radius:0 12px 12px 0;padding:14px 18px;margin:18px 0;",
+        "callout_label": "font-size:11px;font-weight:700;color:#c9847a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;",
+        "callout_text": "font-size:14px;color:#6a4a48;line-height:1.75;",
+        "figure_wrap": "background:#f0ebe6;border-radius:12px;padding:12px;margin:20px 0;",
+        "figure_caption": "font-size:11px;color:#9a7a78;text-align:center;margin:8px 0 0;line-height:1.4;",
+        "li": "font-size:14px;color:#4a3a38;line-height:1.88;margin-bottom:6px;",
+        "qr_wrap": "padding:24px 28px;text-align:center;background:#f5f0ec;border-top:1px solid #ddd0c8;",
+        "qr_caption": "font-size:13px;color:#9a7a78;margin:0 0 12px;",
+        "qr_img": "width:160px;height:160px;border:3px solid #c9847a;border-radius:12px;display:block;margin:0 auto 12px;",
+        "qr_placeholder": "width:160px;height:160px;border:3px dashed #c9847a;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;background:#faf0ee;",
+        "qr_placeholder_text": "font-size:11px;color:#c9847a;text-align:center;padding:8px;",
+        "qr_footnote": "font-size:11px;color:#b0998f;margin:0;",
+        "series_label": "RNAscript · 前沿解读",
+        "vol_text": "Vol.{vol} · {year}",
+    },
     "nature": {
         "name": "Nature · 极简学术",
         "label": "极简学术",
@@ -418,7 +471,7 @@ def build_html(items, theme_name="orange", title="文章标题", subtitle="",
     a('')
     a(f'<!-- 顶部色带 -->')
     a(f'<div style="{t["top_band"]}"></div>')
-    if theme_name == "blue" and "top_band2" in t:
+    if t.get("top_band2"):
         a(f'<div style="{t["top_band2"]}"></div>')
     a('')
 
@@ -982,8 +1035,8 @@ def main():
         description="将 .docx 转化为微信公众号兼容全内联 HTML"
     )
     parser.add_argument("--input", "-i", required=True, help=".docx 文件路径")
-    parser.add_argument("--theme", "-t", choices=["orange", "blue", "nature", "cell"], default="orange",
-                        help="主题：orange（橙皮书）、blue（学术深蓝）、nature（极简学术）、cell（期刊封面）")
+    parser.add_argument("--theme", "-t", choices=["orange", "blue", "morandi", "nature", "cell"], default="orange",
+                        help="主题：orange（橙皮书）、blue（学术深蓝）、morandi（莫兰迪淡雅）、nature（极简学术）、cell（期刊封面）")
     parser.add_argument("--output", "-o", required=True, help="输出 HTML 路径")
     parser.add_argument("--qr", help="个人二维码图片路径（可选）")
     parser.add_argument("--title", help="文章标题（默认从 H1 提取）")
@@ -1023,7 +1076,7 @@ def main():
     print(f"📊 解析段落：{len(items)} 个（含图片：{sum(1 for i in items if i['type']=='img')} 张）")
 
     # 根据 theme 选择构建器
-    if args.theme in ("orange", "blue"):
+    if args.theme in ("orange", "blue", "morandi"):
         html = build_html(
             items,
             theme_name=args.theme,
