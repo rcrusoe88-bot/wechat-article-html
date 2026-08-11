@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=rcrusoe88-bot&repo=wechat-article-html&theme=vue&show_owner=true" alt="wechat-article-html 仓库数据">
+  <img src="https://github-readme-stats-eight-theta.vercel.app/api/pin/?username=rcrusoe88-bot&repo=wechat-article-html&theme=vue&show_owner=true" alt="wechat-article-html 仓库数据">
 </p>
 
 将 Word 文档（`.docx`）转化为微信公众号兼容的**全内联式 HTML**，可直接在浏览器打开后复制粘贴至公众号编辑器。
@@ -141,6 +141,6 @@ MIT
 ## 📊 作者 GitHub 数据
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=rcrusoe88-bot&show_icons=true&theme=vue" alt="rcrusoe88-bot 的 GitHub 统计">
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=rcrusoe88-bot&layout=compact&theme=vue" alt="rcrusoe88-bot 的常用语言">
+  <img src="https://github-readme-stats-eight-theta.vercel.app/api?username=rcrusoe88-bot&show_icons=true&theme=vue" alt="rcrusoe88-bot 的 GitHub 统计">
+  <img src="https://github-readme-stats-eight-theta.vercel.app/api/top-langs/?username=rcrusoe88-bot&layout=compact&theme=vue" alt="rcrusoe88-bot 的常用语言">
 </p>
