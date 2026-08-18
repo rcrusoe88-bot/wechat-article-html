@@ -1,7 +1,10 @@
-# Python cache
 __pycache__/
-*.pyc
-*.pyo
-
-# Local install metadata
-_user_meta.json
+*.py[cod]
+.pytest_cache/
+.coverage
+dist/
+build/
+examples/generated/
+examples/qa-screenshots/
+examples/qa-browser-metrics.json
+*.preview.html

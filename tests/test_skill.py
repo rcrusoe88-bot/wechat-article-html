@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+
+class SkillPackageTests(unittest.TestCase):
+    def test_frontmatter_and_required_assets(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(skill.startswith("---\n"))
+        self.assertIn("name: anything-to-html", skill)
+        self.assertIn("description:", skill)
+        self.assertTrue((ROOT / "agents" / "openai.yaml").is_file())
+        self.assertTrue((ROOT / "assets" / "fonts" / "PreTesto-Italic.ttf").is_file())
+        self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi.otf").is_file())
+        self.assertTrue((ROOT / "assets" / "fonts" / "OFL-1.1.txt").is_file())
+
+    def test_no_old_font_or_stale_converter_contract(self) -> None:
+        files = [
+            ROOT / "SKILL.md",
+            ROOT / "README.md",
+            ROOT / "THIRD_PARTY_NOTICES.md",
+            ROOT / "references" / "themes.md",
+            ROOT / "references" / "quality.md",
+            ROOT / "scripts" / "convert.py",
+            ROOT / "scripts" / "validate_html.py",
+            ROOT / "scripts" / "build_gallery.py",
+            ROOT / "agents" / "openai.yaml",
+        ]
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in files)
+        self.assertNotIn("TiGuFangSong", combined)
+        self.assertNotIn("tkFangSong", combined)
+        self.assertNotIn("cdn.jsdelivr.net", combined)
+
+
+if __name__ == "__main__":
+    unittest.main()

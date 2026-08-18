@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anything to HTML"
+  short_description: "将 Word、Markdown 和文本转换为高质量微信公众号 HTML"
+  default_prompt: "把提供的内容转换为微信公众号兼容的 HTML，并选择合适主题。"

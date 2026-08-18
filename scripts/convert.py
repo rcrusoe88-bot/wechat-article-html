@@ -1,1124 +1,665 @@
 #!/usr/bin/env python3
-"""
-WeChat Article HTML Converter
-将 Word(.docx) 转化为微信公众号兼容全内联式 HTML
+"""Convert Word, Markdown, or text into WeChat-compatible inline HTML."""
 
-用法:
-  python3 convert.py --input article.docx --theme orange --output out.html
-  python3 convert.py --input article.docx --theme blue --output out.html --qr qr.jpg
-"""
+from __future__ import annotations
 
 import argparse
 import base64
+import html
+import mimetypes
 import os
 import re
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
-
-try:
-    from docx import Document
-    from docx.oxml.ns import qn
-except ImportError:
-    print("请安装 python-docx: pip install python-docx --break-system-packages")
-    sys.exit(1)
+from typing import Iterable
 
 
-# ─────────────────────────────────────────────
-# 主题定义
-# ─────────────────────────────────────────────
+BODY_FONT = "'XuanZongTi', '玄宗体', 'FangSong', 'STFangsong', 'SimSun', serif"
+LABEL_FONT = "'PreTesto', Georgia, 'Times New Roman', serif"
+
+
+@dataclass(frozen=True)
+class Theme:
+    key: str
+    name: str
+    primary: str
+    secondary: str
+    background: str
+    surface: str
+    text: str
+    muted: str
+    border: str
+    variant: str
+    description: str
+
 
 THEMES = {
-    "orange": {
-        "name": "橙皮书",
-        "label": "技术白皮书",
-        "body": "margin:0;padding:0;background:#f5f0e8;font-family:-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif;color:#1a0800;line-height:1.8;",
-        "container": "max-width:680px;margin:0 auto;background:#fffbf0;",
-        "top_band": "background:#e85d04;height:8px;",
-        "bottom_band1": "background:#e85d04;height:8px;margin-top:8px;",
-        "bottom_band2": None,
-        "header_wrap": "padding:16px 28px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0e8d8;",
-        "header_label": "font-size:11px;font-weight:700;color:#e85d04;letter-spacing:0.1em;",
-        "header_vol": "font-size:11px;color:#999;",
-        "series_badge": "display:inline-block;background:#e85d04;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:4px 12px;border-radius:2px;margin-bottom:16px;",
-        "h1": "font-size:22px;font-weight:800;color:#1a0800;line-height:1.35;margin:0 0 12px;padding-bottom:16px;border-bottom:3px solid #e85d04;",
-        "subtitle": "font-size:14px;color:#7a4020;line-height:1.6;margin:0 0 14px;font-style:italic;",
-        "source_box": "font-size:11px;color:#999;background:#f5ece0;border-left:3px solid #f97316;padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:24px;",
-        "stat_row": "display:flex;gap:12px;margin:0 28px 24px;",
-        "stat_card": "flex:1;background:#fff8f0;border:1px solid #fcd9b6;border-radius:6px;padding:14px 10px;text-align:center;",
-        "stat_num": "font-size:26px;font-weight:800;color:#e85d04;line-height:1;margin-bottom:4px;",
-        "stat_label": "font-size:10px;color:#a05030;line-height:1.4;",
-        "abstract_box": "margin:0 28px 20px;background:#fff8f0;border:1px solid #fcd9b6;border-radius:6px;padding:16px 20px;",
-        "abstract_label": "font-size:10px;font-weight:700;color:#e85d04;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;",
-        "abstract_label_text": "摘要 Abstract",
-        "abstract_text": "font-size:13px;color:#4a2010;line-height:1.75;margin:0;",
-        "keyword_wrap": "padding:0 28px 20px;display:flex;flex-wrap:wrap;gap:6px;",
-        "keyword": "font-size:11px;padding:3px 10px;background:#fff3e0;border:1px solid #f97316;color:#c2410c;border-radius:3px;",
-        "toc_wrap": "margin:0 28px 28px;border:1px solid #e8d0b0;border-radius:6px;overflow:hidden;",
-        "toc_header": "background:#e85d04;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:8px 16px;text-transform:uppercase;",
-        "toc_header_text": "目录 Contents",
-        "toc_row": "display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid #f0e4d0;font-size:13px;color:#3a1a08;",
-        "toc_row_alt": "display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid #f0e4d0;font-size:13px;color:#3a1a08;background:#fffaf4;",
-        "toc_num": "font-size:11px;font-weight:700;color:#e85d04;",
-        "divider": "height:2px;background:linear-gradient(to right,#e85d04 30%,#fcd9b6 100%);margin:0 28px 28px;border-radius:1px;",
-        "section_pad": "padding:0 28px 32px;",
-        "h2": "font-size:18px;font-weight:800;color:#1a0800;line-height:1.4;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #e85d04;",
-        "h2_num": "color:#e85d04;font-size:14px;font-weight:700;display:block;margin-bottom:4px;",
-        "h3": "font-size:15px;font-weight:700;color:#e85d04;margin:0 0 12px;padding-left:10px;border-left:3px solid #e85d04;",
-        "p": "font-size:15px;color:#2a1000;line-height:1.9;margin:0 0 16px;text-align:justify;",
-        "callout_wrap": "background:#fff3e0;border:1px solid #fcd9b6;border-left:4px solid #e85d04;border-radius:0 6px 6px 0;padding:14px 18px;margin:18px 0;",
-        "callout_label": "font-size:11px;font-weight:700;color:#e85d04;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;",
-        "callout_text": "font-size:14px;color:#7a3010;line-height:1.7;",
-        "figure_wrap": "background:#f5ece0;border-radius:6px;padding:12px;margin:20px 0;",
-        "figure_caption": "font-size:11px;color:#a05030;text-align:center;margin:8px 0 0;line-height:1.4;",
-        "li": "font-size:14px;color:#2a1000;line-height:1.8;margin-bottom:6px;",
-        "qr_wrap": "padding:24px 28px;text-align:center;background:#fff8f0;border-top:1px solid #fcd9b6;",
-        "qr_caption": "font-size:13px;color:#7a4020;margin:0 0 12px;",
-        "qr_img": "width:160px;height:160px;border:3px solid #f97316;border-radius:8px;display:block;margin:0 auto 12px;",
-        "qr_placeholder": "width:160px;height:160px;border:3px solid #f97316;border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;background:#fff3e0;",
-        "qr_placeholder_text": "font-size:11px;color:#e85d04;text-align:center;padding:8px;",
-        "qr_footnote": "font-size:11px;color:#999;margin:0;",
-        "series_label": "RNAscript · 技术白皮书",
-        "vol_text": "Vol.{vol} · {year}",
-    },
-    "blue": {
-        "name": "学术深蓝",
-        "label": "学术综述",
-        "body": "margin:0;padding:0;background:#eef2f7;font-family:-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif;color:#0f172a;line-height:1.85;",
-        "container": "max-width:680px;margin:0 auto;background:#f8fafd;",
-        "top_band": "background:#1e3a5f;height:6px;",
-        "top_band2": "background:#2563eb;height:2px;",
-        "bottom_band1": "background:#2563eb;height:2px;margin-top:8px;",
-        "bottom_band2": "background:#1e3a5f;height:6px;",
-        "header_wrap": "padding:14px 28px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #bfdbfe;",
-        "header_label": "font-size:11px;font-weight:700;color:#1e3a5f;letter-spacing:0.12em;font-family:-apple-system,sans-serif;",
-        "header_vol": "font-size:11px;color:#94a3b8;font-family:-apple-system,sans-serif;",
-        "series_badge": "display:inline-block;background:#1e3a5f;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:4px 12px;border-radius:2px;margin-bottom:16px;font-family:-apple-system,sans-serif;",
-        "h1": "font-size:22px;font-weight:700;color:#0f172a;line-height:1.4;margin:0 0 14px;padding-bottom:16px;border-bottom:3px solid #1e3a5f;font-family:Georgia,'Songti SC',serif;",
-        "subtitle": "font-size:14px;color:#334e7a;line-height:1.65;margin:0 0 14px;font-style:italic;font-family:Georgia,'Songti SC',serif;",
-        "source_box": "font-size:11px;color:#94a3b8;background:#e8f0fb;border-left:3px solid #2563eb;padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:24px;font-family:-apple-system,sans-serif;",
-        "stat_row": "display:flex;gap:12px;margin:0 28px 24px;",
-        "stat_card": "flex:1;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;padding:14px 10px;text-align:center;",
-        "stat_num": "font-size:24px;font-weight:700;color:#1e3a5f;line-height:1;margin-bottom:4px;font-family:Georgia,serif;",
-        "stat_label": "font-size:10px;color:#4a6fa5;line-height:1.4;font-family:-apple-system,sans-serif;",
-        "abstract_box": "margin:0 28px 20px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;padding:16px 20px;",
-        "abstract_label": "font-size:10px;font-weight:700;color:#1e3a5f;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;font-family:-apple-system,sans-serif;",
-        "abstract_label_text": "ABSTRACT · 摘要",
-        "abstract_text": "font-size:13px;color:#1e293b;line-height:1.8;margin:0;",
-        "keyword_wrap": "padding:0 28px 20px;display:flex;flex-wrap:wrap;gap:6px;",
-        "keyword": "font-size:11px;padding:3px 10px;background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;border-radius:3px;font-family:-apple-system,sans-serif;",
-        "toc_wrap": "margin:0 28px 28px;border:1px solid #bfdbfe;border-radius:6px;overflow:hidden;",
-        "toc_header": "background:#1e3a5f;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.1em;padding:8px 16px;text-transform:uppercase;font-family:-apple-system,sans-serif;",
-        "toc_header_text": "CONTENTS · 目录",
-        "toc_row": "display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid #e0eaff;font-size:13px;color:#1e3a5f;",
-        "toc_row_alt": "display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid #e0eaff;font-size:13px;color:#1e3a5f;background:#f4f8ff;",
-        "toc_num": "font-size:11px;font-weight:700;color:#2563eb;",
-        "divider": "height:2px;background:linear-gradient(to right,#1e3a5f 30%,#dbeafe 100%);margin:0 28px 28px;border-radius:1px;",
-        "section_pad": "padding:0 28px 32px;",
-        "h2": "font-size:18px;font-weight:700;color:#0f172a;line-height:1.4;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #1e3a5f;font-family:Georgia,'Songti SC',serif;",
-        "h2_num": "color:#2563eb;font-size:13px;font-weight:700;display:block;margin-bottom:4px;font-family:-apple-system,sans-serif;letter-spacing:0.05em;",
-        "h3": "font-size:15px;font-weight:700;color:#1e3a5f;margin:0 0 12px;padding-left:10px;border-left:3px solid #2563eb;font-family:Georgia,'Songti SC',serif;",
-        "p": "font-size:15px;color:#1e293b;line-height:1.9;margin:0 0 16px;text-align:justify;",
-        "callout_wrap": "background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:0 6px 6px 0;padding:14px 18px;margin:18px 0;",
-        "callout_label": "font-size:10px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:-apple-system,sans-serif;",
-        "callout_text": "font-size:14px;color:#334e7a;line-height:1.75;",
-        "figure_wrap": "background:#e8f0fb;border-radius:6px;padding:12px;margin:20px 0;",
-        "figure_caption": "font-size:11px;color:#4a6fa5;text-align:center;margin:8px 0 0;line-height:1.4;font-family:-apple-system,sans-serif;",
-        "li": "font-size:14px;color:#1e293b;line-height:1.85;margin-bottom:6px;",
-        "qr_wrap": "padding:24px 28px;text-align:center;background:#f0f7ff;border-top:1px solid #bfdbfe;",
-        "qr_caption": "font-size:13px;color:#334e7a;margin:0 0 12px;font-family:-apple-system,sans-serif;",
-        "qr_img": "width:160px;height:160px;border:3px solid #2563eb;border-radius:8px;display:block;margin:0 auto 12px;",
-        "qr_placeholder": "width:160px;height:160px;border:3px solid #2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;background:#dbeafe;",
-        "qr_placeholder_text": "font-size:11px;color:#1e3a5f;text-align:center;padding:8px;font-family:-apple-system,sans-serif;",
-        "qr_footnote": "font-size:11px;color:#94a3b8;margin:0;font-family:-apple-system,sans-serif;",
-        "series_label": "RNAscript · 学术综述",
-        "vol_text": "Vol.{vol} · {year}",
-    },
-    "morandi": {
-        "name": "莫兰迪淡雅",
-        "label": "前沿解读",
-        "body": "margin:0;padding:0;background:#ede8e1;font-family:-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif;color:#3d2c2c;line-height:1.85;",
-        "container": "max-width:680px;margin:0 auto;background:#faf7f4;",
-        "top_band": "background:#c9847a;height:5px;",
-        "top_band2": "background:#b3cfc5;height:3px;",
-        "bottom_band1": "background:#b3cfc5;height:3px;margin-top:8px;",
-        "bottom_band2": "background:#c9847a;height:5px;",
-        "header_wrap": "padding:14px 28px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8ddd8;",
-        "header_label": "font-size:11px;font-weight:700;color:#c9847a;letter-spacing:0.12em;",
-        "header_vol": "font-size:11px;color:#b0998f;",
-        "series_badge": "display:inline-block;background:#c9847a;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:4px 14px;border-radius:20px;margin-bottom:16px;",
-        "h1": "font-size:22px;font-weight:800;color:#3d2c2c;line-height:1.4;margin:0 0 14px;padding-bottom:16px;border-bottom:3px solid #c9847a;",
-        "subtitle": "font-size:14px;color:#9a7a78;line-height:1.65;margin:0 0 14px;font-style:italic;",
-        "source_box": "font-size:11px;color:#b0998f;background:#f2ece7;border-left:3px solid #c9847a;padding:8px 12px;border-radius:0 6px 6px 0;margin-bottom:24px;",
-        "stat_row": "display:flex;gap:12px;margin:0 28px 24px;",
-        "stat_card": "flex:1;background:#f5f0ec;border:1px solid #ddd0c8;border-radius:12px;padding:14px 10px;text-align:center;",
-        "stat_num": "font-size:24px;font-weight:800;color:#c9847a;line-height:1;margin-bottom:4px;",
-        "stat_label": "font-size:10px;color:#9a7a78;line-height:1.4;",
-        "abstract_box": "margin:0 28px 20px;background:#f5f0ec;border:1px solid #ddd0c8;border-radius:12px;padding:16px 20px;",
-        "abstract_label": "font-size:10px;font-weight:700;color:#c9847a;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;",
-        "abstract_label_text": "摘要 Abstract",
-        "abstract_text": "font-size:13px;color:#4a3a38;line-height:1.8;margin:0;",
-        "keyword_wrap": "padding:0 28px 20px;display:flex;flex-wrap:wrap;gap:6px;",
-        "keyword": "font-size:11px;padding:4px 12px;background:#faf0ee;border:1px solid #c9847a;color:#c9847a;border-radius:20px;",
-        "toc_wrap": "margin:0 28px 28px;border:1px solid #ddd0c8;border-radius:12px;overflow:hidden;",
-        "toc_header": "background:#c9847a;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:10px 18px;",
-        "toc_header_text": "目录 Contents",
-        "toc_row": "display:flex;justify-content:space-between;align-items:center;padding:9px 18px;border-bottom:1px solid #ece4e0;font-size:13px;color:#3d2c2c;",
-        "toc_row_alt": "display:flex;justify-content:space-between;align-items:center;padding:9px 18px;border-bottom:1px solid #ece4e0;font-size:13px;color:#3d2c2c;background:#fdf8f6;",
-        "toc_num": "font-size:11px;font-weight:700;color:#c9847a;",
-        "divider": "height:2px;background:linear-gradient(to right,#c9847a 30%,#e8d4cf 100%);margin:0 28px 28px;border-radius:1px;",
-        "section_pad": "padding:0 28px 32px;",
-        "h2": "font-size:18px;font-weight:800;color:#3d2c2c;line-height:1.4;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #c9847a;",
-        "h2_num": "color:#c9847a;font-size:13px;font-weight:700;display:block;margin-bottom:4px;letter-spacing:0.05em;",
-        "h3": "font-size:15px;font-weight:700;color:#7a9e8e;margin:0 0 12px;padding-left:12px;border-left:3px solid #7a9e8e;",
-        "p": "font-size:15px;color:#4a3a38;line-height:1.95;margin:0 0 16px;text-align:justify;",
-        "callout_wrap": "background:#faf0ee;border:1px solid #ddd0c8;border-left:4px solid #c9847a;border-radius:0 12px 12px 0;padding:14px 18px;margin:18px 0;",
-        "callout_label": "font-size:11px;font-weight:700;color:#c9847a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;",
-        "callout_text": "font-size:14px;color:#6a4a48;line-height:1.75;",
-        "figure_wrap": "background:#f0ebe6;border-radius:12px;padding:12px;margin:20px 0;",
-        "figure_caption": "font-size:11px;color:#9a7a78;text-align:center;margin:8px 0 0;line-height:1.4;",
-        "li": "font-size:14px;color:#4a3a38;line-height:1.88;margin-bottom:6px;",
-        "qr_wrap": "padding:24px 28px;text-align:center;background:#f5f0ec;border-top:1px solid #ddd0c8;",
-        "qr_caption": "font-size:13px;color:#9a7a78;margin:0 0 12px;",
-        "qr_img": "width:160px;height:160px;border:3px solid #c9847a;border-radius:12px;display:block;margin:0 auto 12px;",
-        "qr_placeholder": "width:160px;height:160px;border:3px dashed #c9847a;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;background:#faf0ee;",
-        "qr_placeholder_text": "font-size:11px;color:#c9847a;text-align:center;padding:8px;",
-        "qr_footnote": "font-size:11px;color:#b0998f;margin:0;",
-        "series_label": "RNAscript · 前沿解读",
-        "vol_text": "Vol.{vol} · {year}",
-    },
-    "nature": {
-        "name": "Nature · 极简学术",
-        "label": "极简学术",
-    },
-    "cell": {
-        "name": "Cell · 期刊封面",
-        "label": "期刊封面",
-    },
+    "classic": Theme("classic", "经典简约", "#087f5b", "#d8f3e8", "#ffffff", "#f3faf7", "#26332f", "#66736e", "#cfe3db", "classic", "专业科普与通用长文"),
+    "magazine": Theme("magazine", "杂志精品", "#7a5c3e", "#c5a46d", "#f7f3ed", "#fffdf9", "#302a25", "#766c63", "#ded2c2", "magazine", "深度报道与人物长文"),
+    "fresh": Theme("fresh", "清新文艺", "#356f73", "#f2b8a2", "#f7fbfa", "#ffffff", "#2e4142", "#718081", "#d7e8e5", "fresh", "轻科普与生活方式"),
+    "vibrant": Theme("vibrant", "活力橙黄", "#e8590c", "#f2b705", "#fff8ed", "#ffffff", "#3b3027", "#7b6b5d", "#f2d7b7", "vibrant", "行业动态与快节奏解读"),
+    "swiss": Theme("swiss", "瑞士网格", "#c92a2a", "#111111", "#ffffff", "#f5f5f3", "#161616", "#686868", "#111111", "swiss", "数据报告与理性分析"),
+    "minimal": Theme("minimal", "极简学术", "#111111", "#8c8c8c", "#ffffff", "#fafafa", "#202020", "#777777", "#d9d9d9", "minimal", "论文解读与严肃综述"),
+    "chinese": Theme("chinese", "中式国风", "#8c2f39", "#b68d40", "#fbf6ea", "#fffdf7", "#352b25", "#776b60", "#d8c7a5", "chinese", "传统文化与人文内容"),
+    "narrative": Theme("narrative", "叙事编辑", "#0f766e", "#ef6351", "#f7f3ed", "#fffdf8", "#263534", "#6c7977", "#cfded9", "narrative", "人物故事与行业观察"),
+    "academic-blue": Theme("academic-blue", "学术深蓝", "#173b63", "#2d8c9e", "#f5f8fb", "#ffffff", "#263746", "#667786", "#cad8e5", "academic", "机制讲解与技术综述"),
+    "cell": Theme("cell", "Cell 编辑风", "#12324a", "#b7d33d", "#edf3f5", "#ffffff", "#243540", "#687984", "#c8d7dd", "cell", "临床数据与产品管线"),
+}
+
+ALIASES = {
+    "orange": "vibrant",
+    "nature": "minimal",
+    "blue": "academic-blue",
+    "morandi": "fresh",
 }
 
 
-# ─────────────────────────────────────────────
-# 智能章节嗅探
-# ─────────────────────────────────────────────
-
-# 识别 "§01" "§12" 等独立节标志段落
-SECTION_MARKER_RE = re.compile(r'^§(\d+)$')
-# 识别 "§行业惯性批判" "§结语" "§参考资料" 等内联节标题
-SECTION_HEADING_RE = re.compile(r'^§\w')
-# 识别 "第X章" "第X节" "第X部分" 等中文节标志
-CHAPTER_MARKER_RE = re.compile(r'^第[一二三四五六七八九十百千\d]+[章节部篇]')
-# 识别 "一、" "二、" "十二、" 等中文数字编号标题 → H2
-CN_NUM_HEADING_RE = re.compile(r'^[一二三四五六七八九十]+、')
-# 识别 "2.1" "3.2" "10.1" 等数字子标题 → H3
-SUB_HEADING_RE = re.compile(r'^\d+\.\d+\s')
-# 识别 "Figure X |" 格式的图注 → figure caption
-FIGURE_CAPTION_RE = re.compile(r'^Figure\s+\d+\s*[|｜]')
-# 特殊标题词（导语、结语等）→ H2
-SPECIAL_HEADINGS = {'导语', '结语', '引言', '前言', '背景', '总结', '参考文献', '参考资料', 'References',
-                     '封面提示词', '封面图提示词', '下一篇', '下一篇选题延伸建议',
-                     '致谢', '附录', '补充材料', '技术上游方向', 'CMC/监管视角方向', '产业化落地方向'}
+@dataclass
+class Block:
+    kind: str
+    text: str = ""
+    level: int = 0
+    items: list[str] = field(default_factory=list)
+    rows: list[list[str]] = field(default_factory=list)
+    ordered: bool = False
+    data_uri: str = ""
+    caption: str = ""
+    language: str = ""
 
 
-def smart_sniff_headings(items):
-    """
-    后处理：将普通段落中符合章节模式的条目提升为 h2 或 h3。
-    处理模式：
-      模式A：连续两个段落 ["§01", "AMBITION..."] → 合并为一个 h2 "AMBITION..."
-      模式B：单个段落 "§结语" → 直接提升为 h2
-      模式C：中文编号 "一、xxx" → h2
-      模式D：数字子标题 "2.1 xxx" → h3
-      模式E：特殊标题词（导语、结语等）→ h2
-      模式F：Figure X | ... → figure
-      模式G：中文章节 "第一章" → h2
-    自动编号由 build_html 的 section_nums 系统处理，不在标题文本中重复。
-    """
-    sniffed = []
-    pending_marker = None  # 存储待合并的独立节标志（如 "§01"）
+def canonical_theme(value: str) -> str:
+    key = ALIASES.get(value.lower(), value.lower())
+    if key not in THEMES:
+        choices = ", ".join(sorted([*THEMES, *ALIASES]))
+        raise ValueError(f"unknown theme {value!r}; choose one of: {choices}")
+    return key
 
-    for it in items:
-        if it["type"] != "p":
-            # 非纯文本段落，先刷出待合并标志
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append(it)
+
+def image_to_data_uri(path_value: str, base_dir: Path) -> str:
+    value = path_value.strip().strip("<>")
+    if value.startswith("data:image/"):
+        return value
+    if re.match(r"^[a-z][a-z0-9+.-]*://", value, re.IGNORECASE):
+        raise ValueError(f"external images are not allowed: {value}")
+    image_path = Path(value)
+    if not image_path.is_absolute():
+        image_path = base_dir / image_path
+    image_path = image_path.resolve()
+    if not image_path.is_file():
+        raise FileNotFoundError(f"image not found: {image_path}")
+    mime = mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+    if not mime.startswith("image/"):
+        raise ValueError(f"unsupported image type: {image_path}")
+    encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
+
+SPECIAL_LINE_RE = re.compile(
+    r"^(#{1,3}\s+|>|[-*+]\s+|\d+[.)]\s+|```|~~~|(?:---+|___+|\*\*\*+)$|!\[)"
+)
+
+
+def _table_separator(line: str) -> bool:
+    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
+
+
+def _split_table_row(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def parse_markdown(content: str, base_dir: Path) -> list[Block]:
+    lines = content.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    blocks: list[Block] = []
+    index = 0
+    while index < len(lines):
+        raw = lines[index]
+        stripped = raw.strip()
+        if not stripped:
+            index += 1
             continue
 
-        text = it["text"]
-
-        # 模式A：独立节标志 "§01", "§02"
-        m = SECTION_MARKER_RE.match(text)
-        if m:
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-            pending_marker = f"§{m.group(1)}"
+        fence = re.match(r"^(```|~~~)(.*)$", stripped)
+        if fence:
+            marker = fence.group(1)
+            language = fence.group(2).strip()
+            code_lines: list[str] = []
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith(marker):
+                code_lines.append(lines[index])
+                index += 1
+            if index < len(lines):
+                index += 1
+            blocks.append(Block("code", text="\n".join(code_lines), language=language))
             continue
 
-        # 模式B：内联节标题 "§行业惯性批判"
-        if SECTION_HEADING_RE.match(text):
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append({"type": "h2", "text": text})
+        heading = re.match(r"^(#{1,3})\s+(.+)$", stripped)
+        if heading:
+            blocks.append(Block("heading", text=heading.group(2).strip(), level=len(heading.group(1))))
+            index += 1
             continue
 
-        # 模式G：中文章节 "第一章"
-        if CHAPTER_MARKER_RE.match(text):
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append({"type": "h2", "text": text})
+        image_match = re.fullmatch(r"!\[([^]]*)\]\(([^)]+)\)", stripped)
+        if image_match:
+            blocks.append(
+                Block(
+                    "image",
+                    data_uri=image_to_data_uri(image_match.group(2), base_dir),
+                    caption=image_match.group(1).strip(),
+                )
+            )
+            index += 1
             continue
 
-        # 模式C：中文数字编号 "一、xxx" → H2
-        if CN_NUM_HEADING_RE.match(text):
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append({"type": "h2", "text": text})
+        if stripped in {"---", "___", "***"}:
+            blocks.append(Block("divider"))
+            index += 1
             continue
 
-        # 模式D：数字子标题 "2.1 xxx" → H3
-        if SUB_HEADING_RE.match(text):
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append({"type": "h3", "text": text})
+        if stripped.startswith(">"):
+            quote_lines: list[str] = []
+            while index < len(lines) and lines[index].strip().startswith(">"):
+                quote_lines.append(lines[index].strip()[1:].strip())
+                index += 1
+            blocks.append(Block("quote", text=" ".join(quote_lines)))
             continue
 
-        # 模式E：特殊标题词 → H2
-        if text.strip() in SPECIAL_HEADINGS:
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append({"type": "h2", "text": text})
+        list_match = re.match(r"^([-*+]|\d+[.)])\s+(.+)$", stripped)
+        if list_match:
+            ordered = list_match.group(1)[0].isdigit()
+            items: list[str] = []
+            while index < len(lines):
+                current = re.match(r"^([-*+]|\d+[.)])\s+(.+)$", lines[index].strip())
+                if not current or current.group(1)[0].isdigit() != ordered:
+                    break
+                items.append(current.group(2).strip())
+                index += 1
+            blocks.append(Block("list", items=items, ordered=ordered))
             continue
 
-        # 模式F：Figure caption → 保持为 p，但标记为 figure
-        if FIGURE_CAPTION_RE.match(text):
-            if pending_marker:
-                sniffed.append({"type": "h2", "text": pending_marker})
-                pending_marker = None
-            sniffed.append({"type": "figure", "text": text})
+        if index + 1 < len(lines) and "|" in stripped and _table_separator(lines[index + 1].strip()):
+            rows = [_split_table_row(stripped)]
+            index += 2
+            while index < len(lines) and "|" in lines[index] and lines[index].strip():
+                rows.append(_split_table_row(lines[index]))
+                index += 1
+            blocks.append(Block("table", rows=rows))
             continue
 
-        # 普通段落：如有待合并标志，合并为 h2
-        if pending_marker:
-            sniffed.append({"type": "h2", "text": text})
-            pending_marker = None
-        else:
-            sniffed.append(it)
-
-    # 末尾遗留的待合并标志
-    if pending_marker:
-        sniffed.append({"type": "h2", "text": pending_marker})
-
-    return sniffed
-
-
-# ─────────────────────────────────────────────
-# 文档解析
-# ─────────────────────────────────────────────
-
-def extract_images(docx_path):
-    """提取文档中所有图片，返回 [{b64, ext, mime}] 列表（按关系顺序）"""
-    doc = Document(docx_path)
-    images = []
-    seen = set()
-    for rel in doc.part.rels.values():
-        if "image" in rel.reltype and rel.target_ref not in seen:
-            seen.add(rel.target_ref)
-            blob = rel.target_part.blob
-            b64 = base64.b64encode(blob).decode()
-            ct = rel.target_part.content_type  # e.g. "image/jpeg"
-            ext = ct.split("/")[-1].replace("png", "png").replace("jpeg", "jpeg")
-            images.append({"b64": b64, "ext": ext, "mime": ct})
-    return images
-
-
-def parse_paragraphs(docx_path):
-    """
-    解析文档段落，返回结构化列表：
-    每项为 dict，type 为 h1/h2/h3/p/li/img
-    """
-    doc = Document(docx_path)
-    items = []
-
-    # 提取图片（顺序）
-    images = extract_images(docx_path)
-    img_idx = [0]  # 使用列表以支持嵌套修改
-
-    # 检测段落是否包含图片（用元素查找，避免误判 xmlns 声明）
-    def para_has_image(para):
-        return (
-            len(para._element.findall('.//' + qn('w:drawing'))) > 0 or
-            len(para._element.findall('.//' + qn('w:pict'))) > 0
-        )
-
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        style = para.style.name if para.style else "Normal"
-
-        # 图片段落
-        if para_has_image(para):
-            if img_idx[0] < len(images):
-                items.append({"type": "img", "data": images[img_idx[0]]})
-                img_idx[0] += 1
-            continue
-
-        # 跳过空段落
-        if not text:
-            continue
-
-        # 标题
-        if style == "Heading 1" or style.startswith("标题 1"):
-            items.append({"type": "h1", "text": text})
-        elif style == "Heading 2" or style.startswith("标题 2"):
-            items.append({"type": "h2", "text": text})
-        elif style == "Heading 3" or style.startswith("标题 3"):
-            items.append({"type": "h3", "text": text})
-        # 列表
-        elif style == "List Paragraph" or text.startswith(("•", "·", "-", "●", "◆", "*")):
-            clean = text.lstrip("•·-●◆* \t")
-            items.append({"type": "li", "text": clean})
-        # 正文
-        else:
-            items.append({"type": "p", "text": text})
-
-    # 未插入的图片追加到末尾
-    while img_idx[0] < len(images):
-        items.append({"type": "img", "data": images[img_idx[0]]})
-        img_idx[0] += 1
-
-    return items
-
-
-# ─────────────────────────────────────────────
-# HTML 生成
-# ─────────────────────────────────────────────
-
-def esc(s):
-    """HTML 转义"""
-    return (s.replace("&", "&amp;")
-             .replace("<", "&lt;")
-             .replace(">", "&gt;")
-             .replace('"', "&quot;"))
-
-
-def build_html(items, theme_name="orange", title="文章标题", subtitle="",
-               keywords=None, abstract="", source="", series_tag="深度解读",
-               qr_path=None, vol="01", year="2025"):
-    """
-    将解析后的段落列表生成完整 HTML 字符串
-    """
-    t = THEMES.get(theme_name, THEMES["orange"])
-    kws = keywords or []
-
-    # 读取 QR 码
-    qr_b64 = None
-    qr_mime = "image/jpeg"
-    if qr_path and os.path.exists(qr_path):
-        with open(qr_path, "rb") as f:
-            qr_b64 = base64.b64encode(f.read()).decode()
-        ext = Path(qr_path).suffix.lower()
-        qr_mime = "image/png" if ext == ".png" else "image/jpeg"
-
-    # ── 收集标题用于 TOC ──
-    # 不参与编号的特殊标题集合
-    NO_NUM_HEADINGS = {"导语", "引言", "前言", "结语", "总结", "参考文献", "参考资料", "References",
-                       "封面提示词", "封面图提示词", "下一篇", "下一篇选题延伸建议",
-                       "致谢", "附录", "补充材料", "技术上游方向", "CMC/监管视角方向", "产业化落地方向"}
-    headings = [(it["type"], it["text"]) for it in items if it["type"] in ("h1", "h2", "h3")]
-    section_nums = {}
-    h2_count = 0
-    h3_count = {}
-    for htype, htxt in headings:
-        if htype == "h2":
-            if htxt.strip() not in NO_NUM_HEADINGS:
-                h2_count += 1
-                section_nums[htxt] = f"§{h2_count}"
-                h3_count[h2_count] = 0
-            # 特殊标题不编号
-        elif htype == "h3":
-            h3_count[h2_count] = h3_count.get(h2_count, 0) + 1
-            section_nums[htxt] = f"§{h2_count}.{h3_count[h2_count]}"
-
-    # ── 数据卡片（从段落提取数字）──
-    stat_candidates = []
-    for it in items:
-        if it["type"] == "p":
-            nums = re.findall(r"(\d+(?:\.\d+)?%|\d+(?:\.\d+)?[kKmMnNntT]+)", it["text"])
-            for n in nums[:3]:
-                if n not in [s[0] for s in stat_candidates]:
-                    stat_candidates.append((n, it["text"][:30] + "…"))
-            if len(stat_candidates) >= 3:
+        paragraph_lines = [stripped]
+        index += 1
+        while index < len(lines):
+            candidate = lines[index].strip()
+            if not candidate or SPECIAL_LINE_RE.match(candidate):
                 break
+            if index + 1 < len(lines) and "|" in candidate and _table_separator(lines[index + 1].strip()):
+                break
+            paragraph_lines.append(candidate)
+            index += 1
+        blocks.append(Block("paragraph", text=" ".join(paragraph_lines)))
+    return blocks
 
-    # ── 开始拼 HTML ──
-    lines = []
-    a = lines.append  # 简写
 
-    a('<!DOCTYPE html>')
-    a('<html lang="zh-CN">')
-    a('<head>')
-    a('<meta charset="UTF-8">')
-    a('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
-    a(f'<title>{esc(title)}</title>')
-    a('</head>')
-    a(f'<body style="{t["body"]}">')
-    a('')
-    a(f'<div style="{t["container"]}">')
-    a('')
-    a(f'<!-- 顶部色带 -->')
-    a(f'<div style="{t["top_band"]}"></div>')
-    if t.get("top_band2"):
-        a(f'<div style="{t["top_band2"]}"></div>')
-    a('')
+def _smart_heading(text: str) -> int:
+    numbered = r"第[一二三四五六七八九十百0-9]+(?:[章节部篇]|道损耗)"
+    editorial = r"(?:数据卡片|换气点|三大工程策略|临床爆发背后|批判性讨论|结语|参考资料)"
+    if re.match(rf"^(?:{numbered}|{editorial})(?:[:：]|$)|^§\s*\d+", text) and len(text) <= 90:
+        return 2
+    return 0
 
-    # 页眉
-    vol_text = t["vol_text"].format(vol=vol, year=year)
-    a(f'<!-- 页眉 -->')
-    a(f'<div style="{t["header_wrap"]}">')
-    a(f'  <span style="{t["header_label"]}">{esc(t["series_label"])}</span>')
-    a(f'  <span style="{t["header_vol"]}">{esc(vol_text)}</span>')
-    a(f'</div>')
-    a('')
 
-    # 封面
-    a(f'<!-- 封面 -->')
-    a(f'<div style="padding:28px 28px 0;">')
-    a(f'  <span style="{t["series_badge"]}">{esc(series_tag)}</span>')
-    a(f'  <h1 style="{t["h1"]}">{esc(title)}</h1>')
-    if subtitle:
-        a(f'  <p style="{t["subtitle"]}">{esc(subtitle)}</p>')
-    if source:
-        a(f'  <div style="{t["source_box"]}">文献来源：{esc(source)}</div>')
-    a(f'</div>')
-    a('')
+def _normalize_docx_blocks(blocks: list[Block]) -> list[Block]:
+    """Promote strong unstyled-document signals without inventing structure."""
+    if (
+        len(blocks) >= 2
+        and blocks[0].kind == "paragraph"
+        and blocks[1].kind == "paragraph"
+        and blocks[1].text.startswith("副标题：")
+        and len(blocks[0].text) <= 100
+    ):
+        blocks[0] = Block("heading", text=blocks[0].text, level=1)
 
-    # 数据卡（若有足够的数字）
-    if len(stat_candidates) >= 2:
-        a(f'<!-- 数据卡片 -->')
-        a(f'<div style="{t["stat_row"]}">')
-        for num, label in stat_candidates[:2]:
-            a(f'  <div style="{t["stat_card"]}">')
-            a(f'    <div style="{t["stat_num"]}">{esc(num)}</div>')
-            a(f'    <div style="{t["stat_label"]}">{esc(label)}</div>')
-            a(f'  </div>')
-        a(f'</div>')
-        a('')
+    normalized: list[Block] = []
+    index = 0
+    while index < len(blocks):
+        block = blocks[index]
+        if block.kind == "image":
+            caption_parts: list[str] = []
+            cursor = index + 1
+            if cursor < len(blocks) and blocks[cursor].kind == "paragraph" and re.match(r"^图\s*\d+[:：]", blocks[cursor].text):
+                caption_parts.append(blocks[cursor].text)
+                cursor += 1
+            if cursor < len(blocks) and blocks[cursor].kind == "paragraph" and blocks[cursor].text.startswith("来源："):
+                caption_parts.append(blocks[cursor].text)
+                cursor += 1
+            if caption_parts:
+                block.caption = " ".join(caption_parts)
+                normalized.append(block)
+                index = cursor
+                continue
+        if block.kind == "paragraph" and block.text.startswith("一句话："):
+            normalized.append(Block("quote", text=block.text.removeprefix("一句话：").strip()))
+        else:
+            normalized.append(block)
+        index += 1
+    return normalized
 
-    # 摘要
-    if abstract:
-        a(f'<!-- 摘要 -->')
-        a(f'<div style="{t["abstract_box"]}">')
-        a(f'  <div style="{t["abstract_label"]}">{t["abstract_label_text"]}</div>')
-        a(f'  <p style="{t["abstract_text"]}">{esc(abstract)}</p>')
-        a(f'</div>')
-        a('')
 
-    # 关键词
-    if kws:
-        a(f'<!-- 关键词 -->')
-        a(f'<div style="{t["keyword_wrap"]}">')
-        for kw in kws:
-            a(f'  <span style="{t["keyword"]}">{esc(kw)}</span>')
-        a(f'</div>')
-        a('')
+def parse_docx(path: Path) -> tuple[list[Block], str]:
+    try:
+        from docx import Document
+        from docx.document import Document as DocumentType
+        from docx.oxml.table import CT_Tbl
+        from docx.oxml.text.paragraph import CT_P
+        from docx.table import Table
+        from docx.text.paragraph import Paragraph
+    except ImportError as exc:
+        raise RuntimeError(".docx input requires python-docx; install requirements.txt") from exc
 
-    # 目录
-    if headings:
-        a(f'<!-- 目录 -->')
-        a(f'<div style="{t["toc_wrap"]}">')
-        a(f'  <div style="{t["toc_header"]}">{t["toc_header_text"]}</div>')
-        alt = False
-        for htype, htxt in headings:
-            if htxt.strip() in NO_NUM_HEADINGS:
-                continue  # TOC 中不显示特殊标题
-            row_style = t["toc_row_alt"] if alt else t["toc_row"]
-            num = section_nums.get(htxt, "")
-            if htype == "h2":
-                a(f'  <div style="{row_style}">')
-                a(f'    <span>{esc(htxt)}</span>')
-                a(f'    <span style="{t["toc_num"]}">{num}</span>')
-                a(f'  </div>')
-                alt = not alt
-            # h3 不显示在目录中（保持简洁）
-        a(f'</div>')
-        a('')
+    document = Document(path)
+    blocks: list[Block] = []
+    pending_list: list[str] = []
+    pending_ordered = False
 
-    # 主分隔线
-    a(f'<div style="{t["divider"]}"></div>')
-    a('')
+    def flush_list() -> None:
+        nonlocal pending_list
+        if pending_list:
+            blocks.append(Block("list", items=pending_list, ordered=pending_ordered))
+            pending_list = []
 
-    # ── 正文内容 ──
-    in_list = False
-    img_counter = [0]
-    h2_sect = [0]
+    def iter_items(parent: DocumentType) -> Iterable[Paragraph | Table]:
+        for child in parent.element.body.iterchildren():
+            if isinstance(child, CT_P):
+                yield Paragraph(child, parent)
+            elif isinstance(child, CT_Tbl):
+                yield Table(child, parent)
 
-    def close_list():
-        nonlocal in_list
-        if in_list:
-            a('</ul>')
-            in_list = False
-
-    a(f'<!-- 正文 -->')
-    a(f'<div style="{t["section_pad"]}">')
-
-    for it in items:
-        itype = it["type"]
-
-        if itype == "h1":
-            close_list()
-            # H1 已在封面区域，跳过
+    for item in iter_items(document):
+        if isinstance(item, Table):
+            flush_list()
+            rows = [[cell.text.strip() for cell in row.cells] for row in item.rows]
+            if rows:
+                blocks.append(Block("table", rows=rows))
             continue
 
-        elif itype == "h2":
-            close_list()
-            # 关闭上一节
-            a('</div>')
-            text = it["text"]
-            is_special = any(text.strip().startswith(k) for k in NO_NUM_HEADINGS)
-
-            if not is_special:
-                h2_sect[0] += 1
-
-            num = section_nums.get(text, "")
-            # 特殊标题（导语、结语等）用不同渲染
-            if text.strip() in ("导语", "引言", "前言"):
-                a('')
-                a(f'<div style="padding:0 28px 8px;">')
-                a(f'  <div style="display:inline-block;background:#1e3a5f;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.08em;padding:4px 14px;border-radius:3px;font-family:-apple-system,sans-serif;">{esc(text)}</div>')
-                a(f'</div>')
-            elif text.strip().startswith(("参考文献", "参考资料", "References")):
-                a('')
-                a(f'<div style="{t["section_pad"]}">')
-                a(f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">')
-                a(f'    <div style="width:40px;height:2px;background:#2563eb;border-radius:1px;"></div>')
-                a(f'    <span style="font-size:15px;font-weight:700;color:#0f172a;letter-spacing:0.02em;">{esc(text)}</span>')
-                a(f'  </div>')
-            elif text.strip().startswith(("封面提示词", "封面图提示词")):
-                a('')
-                a(f'<div style="{t["section_pad"]}">')
-                a(f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">')
-                a(f'    <div style="width:40px;height:2px;background:#93c5fd;border-radius:1px;"></div>')
-                a(f'    <span style="font-size:14px;font-weight:600;color:#475569;">{esc(text)}</span>')
-                a(f'  </div>')
-            elif text.strip().startswith(("下一篇", "技术上游", "CMC", "产业化")):
-                # 末尾补充信息，淡化处理
-                a('')
-                a(f'<div style="{t["section_pad"]}">')
-                a(f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">')
-                a(f'    <div style="width:40px;height:2px;background:#cbd5e1;border-radius:1px;"></div>')
-                a(f'    <span style="font-size:14px;font-weight:600;color:#64748b;">{esc(text)}</span>')
-                a(f'  </div>')
-            elif text.strip().startswith("结语"):
-                a('')
-                a(f'<div style="{t["section_pad"]}">')
-                a(f'  <h2 style="font-size:18px;font-weight:700;color:#0f172a;line-height:1.4;margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid #2563eb;font-family:Georgia,\'Songti SC\',serif;">{esc(text)}</h2>')
-            else:
-                a('')
-                a(f'<div style="{t["section_pad"]}">')
-                a(f'  <h2 style="{t["h2"]}">')
-                a(f'    <span style="{t["h2_num"]}">{num}</span>')
-                a(f'    {esc(text)}')
-                a(f'  </h2>')
-
-        elif itype == "h3":
-            close_list()
-            a(f'  <h3 style="{t["h3"]}">{esc(it["text"])}</h3>')
-
-        elif itype == "figure":
-            close_list()
-            a(f'  <div style="background:#f0f4fa;border-radius:6px;padding:10px 14px;margin:16px 0;border-left:3px solid #93c5fd;">')
-            a(f'    <p style="font-size:12px;color:#475569;line-height:1.65;margin:0;font-family:-apple-system,sans-serif;">{esc(it["text"])}</p>')
-            a(f'  </div>')
-
-        elif itype == "p":
-            close_list()
-            a(f'  <p style="{t["p"]}">{esc(it["text"])}</p>')
-
-        elif itype == "li":
-            if not in_list:
-                a(f'  <ul style="margin:0 0 16px;padding-left:20px;">')
-                in_list = True
-            a(f'    <li style="{t["li"]}">{esc(it["text"])}</li>')
-
-        elif itype == "img":
-            close_list()
-            img_counter[0] += 1
-            d = it["data"]
-            img_src = f'data:{d["mime"]};base64,{d["b64"]}'
-            a(f'  <div style="{t["figure_wrap"]}">')
-            a(f'    <img src="{img_src}" style="width:100%;display:block;border-radius:4px;" alt="图{img_counter[0]}">')
-            a(f'    <p style="{t["figure_caption"]}">图{img_counter[0]}</p>')
-            a(f'  </div>')
-
-    close_list()
-    a('</div>')  # 关闭最后一个 section_pad
-    a('')
-
-    # 底部色带
-    a(f'<!-- 底部色带 -->')
-    a(f'<div style="{t["bottom_band1"]}"></div>')
-    if t.get("bottom_band2"):
-        a(f'<div style="{t["bottom_band2"]}"></div>')
-    a('')
-
-    # 二维码区域
-    a(f'<!-- 关注区 -->')
-    a(f'<div style="{t["qr_wrap"]}">')
-    a(f'  <p style="{t["qr_caption"]}">扫码关注 · 获取最新内容</p>')
-    if qr_b64:
-        a(f'  <img src="data:{qr_mime};base64,{qr_b64}" style="{t["qr_img"]}" alt="公众号二维码">')
-    else:
-        a(f'  <div style="{t["qr_placeholder"]}">')
-        a(f'    <span style="{t["qr_placeholder_text"]}">扫码关注<br>公众号</span>')
-        a(f'  </div>')
-    a(f'  <p style="{t["qr_footnote"]}">{esc(t["series_label"])}</p>')
-    a(f'</div>')
-    a('')
-
-    a('</div>')  # 关闭主容器
-    a('</body>')
-    a('</html>')
-
-    return "\n".join(lines)
-
-
-# ─────────────────────────────────────────────
-# Nature 极简学术风 构建器
-# 克制、留白、衬线体、极细线条撑起层次
-# ─────────────────────────────────────────────
-
-def build_nature_html(items, title="文章标题", subtitle="",
-                      keywords=None, abstract="", source="",
-                      series_tag="深度解读", qr_path=None,
-                      vol="01", year="2025"):
-    """
-    Nature 极简学术编辑风。
-    结构特征：无目录、无数据卡片、大号装饰章节编号、极简 H3 左竖线。
-    """
-    kws = keywords or []
-    serif = "'Georgia','Palatino','Songti SC','SimSun',serif"
-    sans = "-apple-system,'Helvetica Neue','PingFang SC',sans-serif"
-
-    # QR 码
-    qr_b64 = None
-    qr_mime = "image/jpeg"
-    if qr_path and os.path.exists(qr_path):
-        with open(qr_path, "rb") as f:
-            qr_b64 = base64.b64encode(f.read()).decode()
-        ext = Path(qr_path).suffix.lower()
-        qr_mime = "image/png" if ext == ".png" else "image/jpeg"
-
-    lines = []
-    a = lines.append
-
-    a('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
-    a(f'<title>{esc(title)}</title></head>')
-    a(f'<body style="margin:0;padding:0;background:#fafafa;font-family:{serif};color:#1a1a1a;line-height:1;">')
-    a(f'<div style="max-width:640px;margin:0 auto;background:#fff;">')
-
-    # 顶线 — 极细黑线
-    a('<div style="height:3px;background:#1a1a1a;"></div>')
-
-    # 页眉
-    a(f'<div style="padding:20px 32px 16px;border-bottom:1px solid #e5e5e5;">')
-    a(f'  <div style="display:flex;justify-content:space-between;align-items:baseline;">')
-    a(f'    <span style="font-size:10px;font-weight:700;color:#1a1a1a;letter-spacing:0.18em;text-transform:uppercase;font-family:{sans};">RNAscript</span>')
-    a(f'    <span style="font-size:10px;color:#999;font-family:{sans};letter-spacing:0.05em;">Vol.{vol} · {year}</span>')
-    a(f'  </div>')
-    a('</div>')
-
-    # 标题区 — 大量留白
-    a(f'<div style="padding:36px 32px 0;">')
-    a(f'  <span style="display:inline-block;font-size:10px;font-weight:600;color:#666;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:20px;font-family:{sans};">{esc(series_tag)}</span>')
-    a(f'  <h1 style="font-size:26px;font-weight:400;color:#1a1a1a;line-height:1.35;margin:0 0 20px;letter-spacing:-0.01em;font-family:{serif};">{esc(title)}</h1>')
-    if subtitle:
-        a(f'  <p style="font-size:15px;color:#666;line-height:1.6;margin:0 0 24px;font-style:italic;font-family:{serif};">{esc(subtitle)}</p>')
-    if source:
-        a(f'  <div style="font-size:11px;color:#999;border-left:2px solid #ccc;padding:6px 12px;margin-bottom:28px;font-family:{sans};">{esc(source)}</div>')
-    a('</div>')
-
-    # 摘要 — 极简灰底
-    if abstract:
-        a(f'<div style="margin:0 32px 24px;padding:16px 20px;background:#f7f7f7;border-radius:4px;">')
-        a(f'  <div style="font-size:9px;font-weight:700;color:#999;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;font-family:{sans};">ABSTRACT</div>')
-        a(f'  <p style="font-size:13px;color:#333;line-height:1.8;margin:0;font-family:{serif};">{esc(abstract)}</p>')
-        a('</div>')
-
-    # 关键词 — 下划线文字风格
-    if kws:
-        a(f'<div style="padding:0 32px 24px;display:flex;flex-wrap:wrap;gap:8px;">')
-        for kw in kws:
-            a(f'  <span style="font-size:11px;color:#666;padding:3px 0;border-bottom:1px solid #ccc;font-family:{sans};">{esc(kw)}</span>')
-        a('</div>')
-
-    # 分隔线
-    a('<div style="margin:0 32px 28px;height:1px;background:#e5e5e5;"></div>')
-
-    # 正文
-    sec_cnt = [0]
-    in_list = False
-
-    for it in items:
-        t = it["type"]
-
-        if t == "h1":
-            continue  # 已在封面区渲染
-
-        elif t == "h2":
-            if in_list:
-                a('</ul>')
-                in_list = False
-
-            text = it["text"]
-            if text.startswith("§"):
-                text = text[1:]
-
-            if text in ("参考资料", "参考文献", "References"):
-                a(f'<div style="margin:0 32px;">')
-                a(f'  <h2 style="font-size:16px;font-weight:400;color:#1a1a1a;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #e5e5e5;letter-spacing:0.02em;">{esc(text)}</h2>')
-                a('</div>')
-            else:
-                sec_cnt[0] += 1
-                n = sec_cnt[0]
-                a(f'<div style="margin:0 32px;margin-top:36px;">')
-                a(f'  <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:20px;">')
-                a(f'    <span style="font-size:32px;font-weight:300;color:#e0e0e0;line-height:1;font-family:{serif};">{n:02d}</span>')
-                a(f'    <h2 style="font-size:19px;font-weight:400;color:#1a1a1a;margin:0;line-height:1.3;letter-spacing:-0.005em;">{esc(text)}</h2>')
-                a(f'  </div>')
-                a('</div>')
-
-        elif t == "h3":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            a(f'<div style="margin:0 32px;margin-top:20px;">')
-            a(f'  <h3 style="font-size:14px;font-weight:600;color:#1a1a1a;margin:0 0 12px;padding-left:14px;border-left:2px solid #1a1a1a;font-family:{sans};letter-spacing:0.01em;">{esc(it["text"])}</h3>')
-            a('</div>')
-
-        elif t == "figure":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            a(f'<div style="margin:0 32px;margin-bottom:14px;">')
-            a(f'  <p style="font-size:12px;color:#666;line-height:1.65;margin:0;font-family:{sans};font-style:italic;">{esc(it["text"])}</p>')
-            a('</div>')
-
-        elif t == "p":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            a(f'<div style="margin:0 32px;">')
-            a(f'  <p style="font-size:15px;color:#2a2a2a;line-height:1.9;margin:0 0 14px;text-align:justify;font-family:{serif};">{esc(it["text"])}</p>')
-            a('</div>')
-
-        elif t == "li":
-            if not in_list:
-                a(f'<ul style="margin:0 32px 14px;padding-left:20px;">')
-                in_list = True
-            a(f'    <li style="font-size:14px;color:#2a2a2a;line-height:1.8;margin-bottom:6px;font-family:{serif};">{esc(it["text"])}</li>')
-
-        elif t == "img":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            d = it["data"]
-            src = f'data:{d["mime"]};base64,{d["b64"]}'
-            a(f'<div style="margin:20px 32px;">')
-            a(f'  <img src="{src}" style="width:100%;display:block;border-radius:2px;" alt="">')
-            a('</div>')
-
-    if in_list:
-        a('</ul>')
-
-    # 底部
-    a('<div style="margin:0 32px 20px;height:1px;background:#e5e5e5;"></div>')
-    a(f'<div style="padding:28px 32px;text-align:center;">')
-    a(f'  <p style="font-size:12px;color:#999;margin:0 0 16px;font-family:{sans};letter-spacing:0.05em;">FOLLOW US</p>')
-    if qr_b64:
-        a(f'  <img src="data:{qr_mime};base64,{qr_b64}" style="width:140px;height:140px;display:block;margin:0 auto 12px;border-radius:2px;" alt="">')
-    else:
-        a(f'  <div style="width:140px;height:140px;border:2px solid #e0e0e0;border-radius:2px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">')
-        a(f'    <span style="font-size:11px;color:#999;text-align:center;font-family:{sans};">扫码关注<br>公众号</span>')
-        a(f'  </div>')
-    a(f'  <p style="font-size:10px;color:#bbb;margin:0;font-family:{sans};letter-spacing:0.08em;">RNAscript · 信使引擎</p>')
-    a('</div>')
-    a('<div style="height:3px;background:#1a1a1a;"></div>')
-    a('</div></body></html>')
-
-    return "\n".join(lines)
-
-
-# ─────────────────────────────────────────────
-# Cell 期刊封面风 构建器
-# 色块分区、层次丰富、大胆视觉对比
-# ─────────────────────────────────────────────
-
-def build_cell_html(items, title="文章标题", subtitle="",
-                    keywords=None, abstract="", source="",
-                    series_tag="深度解读", qr_path=None,
-                    vol="01", year="2025"):
-    """
-    Cell 期刊封面风。
-    结构特征：无目录、无数据卡片、深蓝章节头色块（SECTION NN）、蓝色圆点 H3。
-    """
-    kws = keywords or []
-    sans = "-apple-system,'Helvetica Neue','PingFang SC',sans-serif"
-    serif = "Georgia,'Songti SC',serif"
-
-    # QR 码
-    qr_b64 = None
-    qr_mime = "image/jpeg"
-    if qr_path and os.path.exists(qr_path):
-        with open(qr_path, "rb") as f:
-            qr_b64 = base64.b64encode(f.read()).decode()
-        ext = Path(qr_path).suffix.lower()
-        qr_mime = "image/png" if ext == ".png" else "image/jpeg"
-
-    lines = []
-    a = lines.append
-
-    a('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
-    a(f'<title>{esc(title)}</title></head>')
-    a(f'<body style="margin:0;padding:0;background:#edf2f7;font-family:{sans};color:#0f172a;line-height:1;">')
-    a(f'<div style="max-width:640px;margin:0 auto;background:#fff;box-shadow:0 0 40px rgba(0,0,0,0.06);">')
-
-    # 顶部装饰条
-    a('<div style="height:6px;background:#1e3a5f;"></div>')
-
-    # Header bar
-    a(f'<div style="padding:16px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e2e8f0;">')
-    a(f'  <span style="font-size:11px;font-weight:800;color:#1e3a5f;letter-spacing:0.15em;">RNAscript</span>')
-    a(f'  <span style="font-size:11px;color:#94a3b8;">Vol.{vol} · {year}</span>')
-    a('</div>')
-
-    # 标题区
-    a(f'<div style="padding:32px 32px 0;">')
-    a(f'  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">')
-    a(f'    <div style="width:4px;height:20px;background:#2563eb;border-radius:2px;"></div>')
-    a(f'    <span style="font-size:10px;font-weight:700;color:#2563eb;letter-spacing:0.12em;text-transform:uppercase;">{esc(series_tag)}</span>')
-    a(f'  </div>')
-    a(f'  <h1 style="font-size:23px;font-weight:800;color:#0f172a;line-height:1.35;margin:0 0 14px;letter-spacing:-0.01em;">{esc(title)}</h1>')
-    if subtitle:
-        a(f'  <p style="font-size:14px;color:#64748b;line-height:1.6;margin:0 0 20px;">{esc(subtitle)}</p>')
-    if source:
-        a(f'  <div style="display:inline-block;font-size:11px;color:#64748b;background:#f1f5f9;padding:6px 12px;border-radius:4px;margin-bottom:24px;">{esc(source)}</div>')
-    a('</div>')
-
-    # 摘要
-    if abstract:
-        a(f'<div style="margin:20px 32px;padding:18px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">')
-        a(f'  <div style="font-size:9px;font-weight:800;color:#2563eb;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">ABSTRACT</div>')
-        a(f'  <p style="font-size:13px;color:#334155;line-height:1.8;margin:0;font-family:{serif};">{esc(abstract)}</p>')
-        a('</div>')
-
-    # 关键词
-    if kws:
-        a(f'<div style="padding:0 32px 20px;display:flex;flex-wrap:wrap;gap:6px;">')
-        for kw in kws:
-            a(f'  <span style="font-size:10px;padding:4px 10px;background:#eff6ff;color:#1e40af;border-radius:20px;font-weight:600;border:1px solid #bfdbfe;">{esc(kw)}</span>')
-        a('</div>')
-
-    # 正文
-    sec_cnt = [0]
-    in_list = False
-
-    for it in items:
-        t = it["type"]
-
-        if t == "h1":
-            continue
-
-        elif t == "h2":
-            if in_list:
-                a('</ul>')
-                in_list = False
-
-            text = it["text"]
-            if text.startswith("§"):
-                text = text[1:]
-
-            if text in ("参考资料", "参考文献", "References"):
-                a(f'<div style="padding:8px 32px;">')
-                a(f'  <div style="width:40px;height:2px;background:#2563eb;border-radius:1px;margin-bottom:12px;"></div>')
-                a(f'  <h2 style="font-size:15px;font-weight:800;color:#0f172a;margin:0 0 12px;">{esc(text)}</h2>')
-                a('</div>')
-            else:
-                sec_cnt[0] += 1
-                n = sec_cnt[0]
-                a(f'<div style="margin-top:36px;padding:0 32px;">')
-                a(f'  <div style="background:#1e3a5f;margin:0 -32px;padding:16px 32px;margin-bottom:20px;border-radius:0 12px 0 0;">')
-                a(f'    <div style="display:flex;align-items:center;gap:14px;">')
-                a(f'      <div style="font-size:13px;font-weight:800;color:#93c5fd;letter-spacing:0.05em;">SECTION {n:02d}</div>')
-                a(f'      <div style="flex:1;height:1px;background:rgba(255,255,255,0.15);"></div>')
-                a(f'    </div>')
-                a(f'    <h2 style="font-size:18px;font-weight:700;color:#fff;margin:8px 0 0;line-height:1.3;">{esc(text)}</h2>')
-                a(f'  </div>')
-                a('</div>')
-
-        elif t == "h3":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            a(f'<div style="padding:0 32px;margin-top:20px;">')
-            a(f'  <div style="display:flex;align-items:center;gap:8px;">')
-            a(f'    <div style="width:8px;height:8px;background:#2563eb;border-radius:50%;flex-shrink:0;"></div>')
-            a(f'    <h3 style="font-size:14px;font-weight:700;color:#1e3a5f;margin:0;">{esc(it["text"])}</h3>')
-            a(f'  </div>')
-            a('</div>')
-
-        elif t == "figure":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            a(f'<div style="padding:0 32px;margin-bottom:14px;">')
-            a(f'  <div style="background:#f1f5f9;border-left:3px solid #93c5fd;padding:10px 14px;border-radius:0 4px 4px 0;">')
-            a(f'    <p style="font-size:12px;color:#64748b;line-height:1.65;margin:0;">{esc(it["text"])}</p>')
-            a(f'  </div>')
-            a('</div>')
-
-        elif t == "p":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            a(f'<div style="padding:0 32px;">')
-            a(f'  <p style="font-size:14.5px;color:#334155;line-height:1.85;margin:0 0 13px;text-align:justify;font-family:{serif};">{esc(it["text"])}</p>')
-            a('</div>')
-
-        elif t == "li":
-            if not in_list:
-                a(f'<ul style="margin:0 32px 13px;padding-left:20px;">')
-                in_list = True
-            a(f'    <li style="font-size:14px;color:#334155;line-height:1.85;margin-bottom:6px;font-family:{serif};">{esc(it["text"])}</li>')
-
-        elif t == "img":
-            if in_list:
-                a('</ul>')
-                in_list = False
-            d = it["data"]
-            src = f'data:{d["mime"]};base64,{d["b64"]}'
-            a(f'<div style="padding:0 32px;margin:16px 0;">')
-            a(f'  <div style="border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(30,58,95,0.08);">')
-            a(f'    <img src="{src}" style="width:100%;display:block;" alt="">')
-            a(f'  </div>')
-            a('</div>')
-
-    if in_list:
-        a('</ul>')
-
-    # 底部 — 深蓝 Footer
-    a('<div style="margin-top:32px;background:#1e3a5f;padding:28px 32px;text-align:center;border-radius:12px 12px 0 0;">')
-    a(f'  <p style="font-size:12px;color:#93c5fd;margin:0 0 16px;font-weight:600;letter-spacing:0.08em;">FOLLOW US</p>')
-    if qr_b64:
-        a(f'  <img src="data:{qr_mime};base64,{qr_b64}" style="width:140px;height:140px;display:block;margin:0 auto 12px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);" alt="">')
-    else:
-        a(f'  <div style="width:140px;height:140px;border:2px solid rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">')
-        a(f'    <span style="font-size:11px;color:#93c5fd;text-align:center;">扫码关注<br>公众号</span>')
-        a(f'  </div>')
-    a(f'  <p style="font-size:10px;color:#64748b;margin:0;letter-spacing:0.06em;">RNAscript · 信使引擎</p>')
-    a('</div>')
-
-    a('</div></body></html>')
-
-    return "\n".join(lines)
-
-
-# ─────────────────────────────────────────────
-# 命令行入口
-# ─────────────────────────────────────────────
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="将 .docx 转化为微信公众号兼容全内联 HTML"
+        paragraph = item
+        text_value = paragraph.text.strip()
+        image_blocks: list[Block] = []
+        for run in paragraph.runs:
+            for blip in run._element.xpath(".//a:blip"):
+                rel_id = blip.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed")
+                if not rel_id or rel_id not in document.part.rels:
+                    continue
+                part = document.part.rels[rel_id].target_part
+                mime = getattr(part, "content_type", "image/png")
+                encoded = base64.b64encode(part.blob).decode("ascii")
+                image_blocks.append(Block("image", data_uri=f"data:{mime};base64,{encoded}"))
+
+        style_name = (paragraph.style.name if paragraph.style else "").lower()
+        heading_level = 0
+        heading_match = re.search(r"heading\s*([1-3])|标题\s*([1-3])", style_name)
+        if heading_match:
+            heading_level = int(heading_match.group(1) or heading_match.group(2))
+        elif text_value:
+            heading_level = _smart_heading(text_value)
+
+        num_pr = getattr(getattr(paragraph._p, "pPr", None), "numPr", None)
+        is_list = num_pr is not None or "list" in style_name or "列表" in style_name
+        if is_list and text_value:
+            ordered = bool(
+                re.match(r"^\d+[.)、]", text_value)
+                or "number" in style_name
+                or "编号" in style_name
+            )
+            cleaned = re.sub(r"^(?:[-*+•]\s*|\d+[.)、]\s*)", "", text_value)
+            if pending_list and ordered != pending_ordered:
+                flush_list()
+            pending_ordered = ordered
+            pending_list.append(cleaned)
+        else:
+            flush_list()
+            if text_value:
+                if heading_level:
+                    blocks.append(Block("heading", text=text_value, level=heading_level))
+                else:
+                    blocks.append(Block("paragraph", text=text_value))
+        if image_blocks:
+            flush_list()
+            blocks.extend(image_blocks)
+
+    flush_list()
+    title = document.core_properties.title.strip() if document.core_properties.title else ""
+    return _normalize_docx_blocks(blocks), title
+
+
+def read_input(path: Path) -> tuple[list[Block], str]:
+    suffix = path.suffix.lower()
+    if suffix == ".docx":
+        return parse_docx(path)
+    if suffix not in {".md", ".markdown", ".txt"}:
+        raise ValueError(f"unsupported input format: {suffix or '<none>'}")
+    content = path.read_text(encoding="utf-8-sig")
+    return parse_markdown(content, path.parent), ""
+
+
+def inline_markup(value: str, theme: Theme) -> str:
+    escaped = html.escape(value, quote=True)
+    code_tokens: list[str] = []
+
+    def stash_code(match: re.Match[str]) -> str:
+        token = f"\x00CODE{len(code_tokens)}\x00"
+        code_tokens.append(
+            f'<code style="padding:2px 5px;background:{theme.surface};border:1px solid {theme.border};color:{theme.primary};font-size:14px;">{match.group(1)}</code>'
+        )
+        return token
+
+    escaped = re.sub(r"`([^`]+)`", stash_code, escaped)
+    escaped = re.sub(
+        r"\[([^]]+)]\((https?://[^)]+)\)",
+        lambda m: f'<a href="{html.escape(html.unescape(m.group(2)), quote=True)}" style="color:{theme.primary};text-decoration:underline;text-underline-offset:3px;">{m.group(1)}</a>',
+        escaped,
     )
-    parser.add_argument("--input", "-i", required=True, help=".docx 文件路径")
-    parser.add_argument("--theme", "-t", choices=["orange", "blue", "morandi", "nature", "cell"], default="orange",
-                        help="主题：orange（橙皮书）、blue（学术深蓝）、morandi（莫兰迪淡雅）、nature（极简学术）、cell（期刊封面）")
-    parser.add_argument("--output", "-o", required=True, help="输出 HTML 路径")
-    parser.add_argument("--qr", help="个人二维码图片路径（可选）")
-    parser.add_argument("--title", help="文章标题（默认从 H1 提取）")
-    parser.add_argument("--subtitle", default="", help="导语副标题")
-    parser.add_argument("--abstract", default="", help="摘要文字")
-    parser.add_argument("--keywords", default="", help="关键词，逗号分隔")
-    parser.add_argument("--source", default="", help="文献来源")
-    parser.add_argument("--series-tag", default="深度解读", help="系列标签（如：博士论文深度解读）")
-    parser.add_argument("--vol", default="01", help="期号")
-    parser.add_argument("--year", default="2025", help="年份")
+    escaped = re.sub(r"\*\*(.+?)\*\*", rf'<strong style="color:{theme.primary};font-weight:700;">\1</strong>', escaped)
+    escaped = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r'<em style="font-style:italic;">\1</em>', escaped)
+    for index, code_html in enumerate(code_tokens):
+        escaped = escaped.replace(f"\x00CODE{index}\x00", code_html)
+    return escaped
 
-    args = parser.parse_args()
 
-    if not os.path.exists(args.input):
-        print(f"错误：找不到文件 {args.input}")
-        sys.exit(1)
+def _header(theme: Theme, title: str, subtitle: str, author: str) -> str:
+    safe_title = html.escape(title)
+    safe_subtitle = html.escape(subtitle)
+    safe_author = html.escape(author)
+    meta = ""
+    if safe_subtitle:
+        meta += f'<p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:{theme.muted};">{safe_subtitle}</p>'
+    if safe_author:
+        meta += f'<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:{theme.muted};">文 / {safe_author}</p>'
 
-    print(f"📄 读取文档：{args.input}")
-    items = parse_paragraphs(args.input)
+    if theme.variant == "magazine":
+        return f'<header style="padding:0 28px 34px;text-align:center;border-top:5px solid {theme.primary};"><p style="margin:28px 0 16px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">FEATURE</p><h1 style="margin:0;font-size:26px;line-height:1.5;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="width:72px;height:1px;background:{theme.secondary};margin:24px auto 0;"></div></header>'
+    if theme.variant == "vibrant":
+        return f'<header style="padding:36px 24px 40px;background:linear-gradient(135deg,{theme.primary}, {theme.secondary});text-align:left;"><p style="margin:0 0 14px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:#5a2c0a;">TREND / NOW</p><h1 style="margin:0;font-size:26px;line-height:1.45;font-weight:800;color:#2d2118;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#5a2c0a")}</header>'
+    if theme.variant == "swiss":
+        return f'<header style="padding:28px 24px 30px;border-top:10px solid {theme.primary};border-bottom:3px solid {theme.secondary};"><p style="margin:0 0 20px;font:italic 17px {LABEL_FONT};color:{theme.primary};">REPORT / 01</p><h1 style="margin:0;max-width:590px;font-size:34px;line-height:1.12;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+    if theme.variant == "minimal":
+        return f'<header style="padding:54px 28px 36px;border-bottom:1px solid {theme.border};"><p style="margin:0 0 28px;font:italic 16px {LABEL_FONT};letter-spacing:3px;color:{theme.muted};">ESSAY  /  01</p><h1 style="margin:0;font-size:30px;line-height:1.45;font-weight:500;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+    if theme.variant == "chinese":
+        return f'<header style="margin:18px;padding:30px 22px;text-align:center;border:3px double {theme.border};background:{theme.surface};"><p style="display:inline-block;margin:0 0 18px;padding:5px 8px;border:1px solid {theme.primary};font-size:14px;line-height:1;color:{theme.primary};">文</p><h1 style="margin:0;font-size:28px;line-height:1.6;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+    if theme.variant == "narrative":
+        return f'<header style="padding:38px 26px 32px;background:{theme.surface};border-top:7px solid {theme.primary};"><p style="margin:0 0 18px;font:italic 17px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">A TRUE STORY</p><h1 style="margin:0;font-size:30px;line-height:1.35;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="display:flex;gap:7px;margin-top:26px;"><span style="display:block;width:42px;height:4px;background:{theme.primary};"></span><span style="display:block;width:14px;height:4px;background:{theme.secondary};"></span></div></header>'
+    if theme.variant == "academic":
+        return f'<header style="padding:34px 26px 36px;background:{theme.primary};border-top:6px solid {theme.secondary};"><p style="margin:0 0 15px;font:italic 15px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">REVIEW ARTICLE</p><h1 style="margin:0;font-size:27px;line-height:1.45;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
+    if theme.variant == "cell":
+        return f'<header style="padding:38px 26px 42px;background:{theme.primary};"><div style="width:54px;height:7px;background:{theme.secondary};margin-bottom:24px;"></div><p style="margin:0 0 14px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">CELL / INSIGHT</p><h1 style="margin:0;font-size:29px;line-height:1.4;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
+    if theme.variant == "fresh":
+        return f'<header style="padding:34px 26px 36px;background:{theme.surface};border-bottom:1px solid {theme.border};"><div style="display:flex;gap:8px;margin-bottom:22px;"><span style="width:13px;height:13px;border-radius:50%;background:{theme.primary};"></span><span style="width:13px;height:13px;border-radius:50%;background:{theme.secondary};"></span></div><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+    return f'<header style="padding:34px 26px 30px;border-top:5px solid {theme.primary};"><p style="margin:0 0 16px;font:italic 15px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">WECHAT ARTICLE</p><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
 
-    # 后处理：智能章节嗅探（无 Word 标题样式的 § 段落 → h2）
-    items = smart_sniff_headings(items)
 
-    # 从 H1 提取标题
-    title = args.title
-    if not title:
-        for it in items:
-            if it["type"] == "h1":
-                title = it["text"]
-                break
-    if not title:
-        title = Path(args.input).stem
+def _heading(theme: Theme, text: str, level: int, chapter: int) -> str:
+    content = inline_markup(text, theme)
+    if level == 3:
+        return f'<h3 style="margin:28px 0 12px;font-size:18px;line-height:1.6;font-weight:700;color:{theme.text};">{content}</h3>'
+    number = f"{chapter:02d}"
+    if theme.variant == "magazine":
+        return f'<section style="margin:46px 0 22px;text-align:center;"><p style="margin:0 0 8px;font:italic 15px {LABEL_FONT};letter-spacing:3px;color:{theme.secondary};">CHAPTER {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:600;color:{theme.text};">{content}</h2></section>'
+    if theme.variant == "swiss":
+        return f'<section style="display:flex;align-items:flex-start;gap:16px;margin:44px 0 20px;padding-top:12px;border-top:3px solid {theme.secondary};"><span style="display:block;min-width:52px;font:italic 24px {LABEL_FONT};color:{theme.primary};">{number}</span><h2 style="min-width:0;margin:0;font-size:24px;line-height:1.3;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{content}</h2></section>'
+    if theme.variant == "minimal":
+        return f'<section style="margin:52px 0 22px;"><p style="margin:0 0 10px;font:italic 17px {LABEL_FONT};color:{theme.muted};">{number}</p><h2 style="margin:0;padding-bottom:12px;border-bottom:1px solid {theme.border};font-size:23px;line-height:1.5;font-weight:500;color:{theme.text};">{content}</h2></section>'
+    if theme.variant == "chinese":
+        return f'<section style="margin:44px 0 22px;text-align:center;"><span style="display:inline-block;margin-bottom:10px;padding:4px 10px;border:1px solid {theme.secondary};font-size:13px;color:{theme.primary};">第 {number} 章</span><h2 style="margin:0;font-size:22px;line-height:1.6;font-weight:600;color:{theme.text};">{content}</h2></section>'
+    if theme.variant == "narrative":
+        return f'<section style="margin:48px 0 22px;padding-left:18px;border-left:5px solid {theme.secondary};"><p style="margin:0 0 6px;font:italic 16px {LABEL_FONT};color:{theme.primary};">SCENE {number}</p><h2 style="margin:0;font-size:25px;line-height:1.35;font-weight:700;color:{theme.text};">{content}</h2></section>'
+    if theme.variant == "academic":
+        return f'<section style="margin:42px 0 20px;padding:14px 18px;background:{theme.primary};"><p style="margin:0 0 5px;font:italic 14px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">SECTION {number}</p><h2 style="margin:0;font-size:21px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
+    if theme.variant == "cell":
+        return f'<section style="margin:42px 0 20px;padding:18px 20px;background:{theme.primary};border-left:8px solid {theme.secondary};"><p style="margin:0 0 6px;font:italic 14px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">SECTION {number}</p><h2 style="margin:0;font-size:22px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
+    if theme.variant == "vibrant":
+        return f'<section style="display:flex;align-items:flex-start;gap:12px;margin:38px 0 18px;"><span style="display:inline-block;min-width:38px;padding:6px 5px;border-radius:4px;background:{theme.primary};font:italic 16px {LABEL_FONT};text-align:center;color:#ffffff;">{number}</span><h2 style="margin:2px 0 0;font-size:22px;line-height:1.45;font-weight:800;color:{theme.text};">{content}</h2></section>'
+    if theme.variant == "fresh":
+        return f'<section style="margin:38px 0 18px;padding:14px 18px;background:{theme.surface};border-left:4px solid {theme.primary};border-radius:0 6px 6px 0;"><p style="margin:0 0 4px;font:italic 14px {LABEL_FONT};color:{theme.secondary};">NOTE {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2></section>'
+    return f'<h2 style="margin:40px 0 18px;padding:0 0 8px 14px;border-left:4px solid {theme.primary};border-bottom:1px solid {theme.border};font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2>'
 
-    kws = [k.strip() for k in args.keywords.split(",") if k.strip()] if args.keywords else []
 
-    print(f"🎨 使用主题：{THEMES[args.theme]['name']}")
-    print(f"📊 解析段落：{len(items)} 个（含图片：{sum(1 for i in items if i['type']=='img')} 张）")
+def _paragraph(theme: Theme, text: str, drop_cap: bool = False) -> str:
+    content = inline_markup(text, theme)
+    if drop_cap and content:
+        first = content[0]
+        rest = content[1:]
+        content = f'<span style="float:left;margin:5px 9px 0 0;font:italic 48px/0.8 {LABEL_FONT};color:{theme.primary};">{first}</span>{rest}'
+    return f'<p style="margin:0 0 20px;font-size:16px;line-height:1.95;text-align:justify;color:{theme.text};overflow-wrap:anywhere;">{content}</p>'
 
-    # 根据 theme 选择构建器
-    if args.theme in ("orange", "blue", "morandi"):
-        html = build_html(
-            items,
-            theme_name=args.theme,
-            title=title,
-            subtitle=args.subtitle,
-            keywords=kws,
-            abstract=args.abstract,
-            source=args.source,
-            series_tag=args.series_tag,
-            qr_path=args.qr,
-            vol=args.vol,
-            year=args.year,
-        )
+
+def _quote(theme: Theme, text: str) -> str:
+    content = inline_markup(text, theme)
+    if theme.variant in {"magazine", "minimal"}:
+        return f'<blockquote style="margin:30px 0;padding:22px 24px;border-top:1px solid {theme.primary};border-bottom:1px solid {theme.primary};background:{theme.surface};"><p style="margin:0;font-size:17px;line-height:1.9;font-style:italic;color:{theme.text};">{content}</p></blockquote>'
+    if theme.variant in {"swiss", "cell"}:
+        return f'<blockquote style="margin:28px 0;padding:20px 22px;border-left:7px solid {theme.primary};background:{theme.surface};"><p style="margin:0;font-size:17px;line-height:1.85;font-weight:600;color:{theme.text};">{content}</p></blockquote>'
+    return f'<blockquote style="margin:28px 0;padding:20px 22px;border-left:4px solid {theme.primary};background:{theme.surface};"><p style="margin:0;font-size:17px;line-height:1.9;color:{theme.text};">{content}</p></blockquote>'
+
+
+def _list(theme: Theme, block: Block) -> str:
+    if theme.variant == "magazine" and not block.ordered:
+        cards = []
+        for index, item in enumerate(block.items, 1):
+            cards.append(f'<div style="margin:0 0 12px;padding:17px 18px;background:{theme.surface};border-left:3px solid {theme.secondary};"><p style="margin:0 0 5px;font:italic 13px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">POINT {index:02d}</p><p style="margin:0;font-size:16px;line-height:1.8;color:{theme.text};">{inline_markup(item, theme)}</p></div>')
+        return f'<section style="margin:24px 0;">{"".join(cards)}</section>'
+    tag = "ol" if block.ordered else "ul"
+    marker = "decimal" if block.ordered else "square" if theme.variant == "swiss" else "disc"
+    items = "".join(f'<li style="margin:0 0 10px;padding-left:4px;font-size:16px;line-height:1.85;color:{theme.primary};"><span style="color:{theme.text};">{inline_markup(item, theme)}</span></li>' for item in block.items)
+    return f'<{tag} style="margin:22px 0;padding-left:26px;list-style-type:{marker};">{items}</{tag}>'
+
+
+def _table(theme: Theme, rows: list[list[str]]) -> str:
+    if not rows:
+        return ""
+    width = max(len(row) for row in rows)
+    normalized = [row + [""] * (width - len(row)) for row in rows]
+    header_cells = "".join(f'<th style="padding:12px 13px;border-right:1px solid {theme.border};background:{theme.primary};font-size:14px;line-height:1.5;text-align:left;color:#ffffff;">{inline_markup(cell, theme)}</th>' for cell in normalized[0])
+    body_rows = []
+    for row in normalized[1:]:
+        cells = "".join(f'<td style="padding:11px 13px;border-right:1px solid {theme.border};border-bottom:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.65;color:{theme.text};vertical-align:top;">{inline_markup(cell, theme)}</td>' for cell in row)
+        body_rows.append(f"<tr>{cells}</tr>")
+    return f'<div style="margin:26px 0;max-width:100%;overflow-x:auto;border:1px solid {theme.border};"><table style="width:100%;min-width:480px;border-collapse:collapse;table-layout:auto;"><tr>{header_cells}</tr>{"".join(body_rows)}</table></div>'
+
+
+def _image(theme: Theme, block: Block) -> str:
+    caption = ""
+    if block.caption:
+        caption = f'<p style="margin:9px 0 0;font-size:13px;line-height:1.6;text-align:center;color:{theme.muted};">{html.escape(block.caption)}</p>'
+    return f'<figure style="margin:28px 0;"><img src="{block.data_uri}" alt="{html.escape(block.caption, quote=True)}" style="display:block;width:100%;max-width:100%;height:auto;border:1px solid {theme.border};" />{caption}</figure>'
+
+
+def _footer(theme: Theme, qr_data_uri: str) -> str:
+    history = []
+    for index in range(1, 4):
+        history.append(f'<div data-history-item="{index}" style="margin:0 0 10px;padding:14px 16px;background:{theme.surface};border-left:3px solid {theme.primary};"><p style="margin:0;font-size:15px;line-height:1.6;color:{theme.text};"><!-- HISTORY_TITLE_{index} -->往期文章标题 {index}</p><p style="margin:4px 0 0;font-size:12px;line-height:1.5;color:{theme.primary};"><!-- HISTORY_LINK_{index} -->阅读全文</p></div>')
+    if qr_data_uri:
+        qr = f'<img data-qr-code="true" src="{qr_data_uri}" alt="公众号二维码" style="display:block;width:144px;height:144px;margin:18px auto 0;object-fit:contain;" />'
     else:
-        # nature / cell 使用独立构建器
-        builder = {"nature": build_nature_html, "cell": build_cell_html}[args.theme]
-        html = builder(
-            items,
-            title=title,
-            subtitle=args.subtitle,
-            keywords=kws,
-            abstract=args.abstract,
-            source=args.source,
-            series_tag=args.series_tag,
-            qr_path=args.qr,
-            vol=args.vol,
-            year=args.year,
+        qr = '<!-- QR_CODE_IMAGE_BASE64_PLACEHOLDER --><div data-qr-placeholder="true" style="display:flex;width:142px;height:142px;margin:18px auto 0;align-items:center;justify-content:center;border:1px solid #c8c8c8;background:#ffffff;font-size:14px;color:#888888;">二维码</div>'
+    return f'<footer data-fixed-footer="true" style="padding:34px 24px 40px;border-top:1px solid {theme.border};"><section style="margin:0 0 30px;"><p style="margin:0 0 16px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">MORE TO READ</p>{"".join(history)}</section><section style="padding:24px 18px;text-align:center;background:{theme.surface};border:1px solid {theme.border};"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.text};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
+
+
+def render_html(
+    blocks: list[Block],
+    title: str,
+    theme_key: str,
+    subtitle: str = "",
+    author: str = "",
+    qr_data_uri: str = "",
+    preview_fonts: bool = False,
+    font_base: str = "assets/fonts",
+) -> str:
+    theme = THEMES[canonical_theme(theme_key)]
+    body_blocks = list(blocks)
+    if body_blocks and body_blocks[0].kind == "heading" and body_blocks[0].level == 1:
+        if not title:
+            title = body_blocks[0].text
+        body_blocks.pop(0)
+    if not title:
+        title = "未命名文章"
+
+    rendered: list[str] = []
+    chapter = 0
+    first_paragraph = True
+    for block in body_blocks:
+        if block.kind == "heading":
+            level = 2 if block.level == 1 else block.level
+            if level == 2:
+                chapter += 1
+            rendered.append(_heading(theme, block.text, level, max(chapter, 1)))
+        elif block.kind == "paragraph":
+            rendered.append(_paragraph(theme, block.text, theme.variant == "magazine" and first_paragraph))
+            first_paragraph = False
+        elif block.kind == "quote":
+            rendered.append(_quote(theme, block.text))
+        elif block.kind == "list":
+            rendered.append(_list(theme, block))
+        elif block.kind == "table":
+            rendered.append(_table(theme, block.rows))
+        elif block.kind == "image":
+            rendered.append(_image(theme, block))
+        elif block.kind == "code":
+            rendered.append(f'<pre style="margin:26px 0;padding:18px;overflow-x:auto;border:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.7;color:{theme.text};white-space:pre-wrap;word-break:break-word;"><code style="font-family:Consolas,monospace;">{html.escape(block.text)}</code></pre>')
+        elif block.kind == "divider":
+            rendered.append(f'<hr style="height:1px;margin:34px 0;border:0;background:{theme.border};" />')
+
+    preview_css = ""
+    preview_attr = ""
+    if preview_fonts:
+        safe_base = font_base.rstrip("/\\").replace("\\", "/")
+        preview_attr = ' data-preview-fonts="true"'
+        preview_css = f'''<style>
+@font-face{{font-family:"PreTesto";src:url("{safe_base}/PreTesto-Italic.ttf") format("truetype");font-style:italic;font-weight:400;}}
+@font-face{{font-family:"XuanZongTi";src:url("{safe_base}/XuanZongTi.otf") format("opentype");font-style:normal;font-weight:400;}}
+</style>'''
+
+    return f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{html.escape(title)}</title>
+{preview_css}
+</head>
+<body data-theme="{theme.key}"{preview_attr} style="max-width:677px;margin:0 auto;padding:0;background:{theme.background};font-family:{BODY_FONT};color:{theme.text};line-height:1.85;">
+{_header(theme, title, subtitle, author)}
+<main style="padding:10px 26px 34px;">
+{''.join(rendered)}
+</main>
+{_footer(theme, qr_data_uri)}
+</body>
+</html>
+'''
+
+
+def convert(
+    input_path: Path,
+    output_path: Path,
+    theme_key: str,
+    title: str = "",
+    subtitle: str = "",
+    author: str = "",
+    qr_path: Path | None = None,
+    preview_fonts: bool = False,
+    font_base: str = "assets/fonts",
+    validate: bool = True,
+) -> Path:
+    blocks, document_title = read_input(input_path)
+    blocks = list(blocks)
+    subtitle_index = 1 if blocks and blocks[0].kind == "heading" and blocks[0].level == 1 else 0
+    if (
+        not subtitle
+        and subtitle_index < len(blocks)
+        and blocks[subtitle_index].kind == "paragraph"
+        and blocks[subtitle_index].text.startswith("副标题：")
+    ):
+        subtitle = blocks[subtitle_index].text.removeprefix("副标题：").strip()
+        del blocks[subtitle_index]
+    inferred_title = ""
+    if blocks and blocks[0].kind == "heading" and blocks[0].level == 1:
+        inferred_title = blocks[0].text
+    final_title = title or inferred_title or document_title or input_path.stem
+    qr_data = image_to_data_uri(str(qr_path), qr_path.parent) if qr_path else ""
+    canonical = canonical_theme(theme_key)
+    output = render_html(blocks, final_title, canonical, subtitle, author, qr_data, preview_fonts, font_base)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(output, encoding="utf-8")
+    if validate:
+        from validate_html import validate_html
+
+        errors = validate_html(output, theme=canonical, allow_preview=preview_fonts)
+        if errors:
+            output_path.unlink(missing_ok=True)
+            details = "\n".join(f"- {error}" for error in errors)
+            raise RuntimeError(f"generated HTML failed validation:\n{details}")
+    return output_path
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", nargs="?", type=Path, help=".docx, .md, .markdown, or .txt input")
+    parser.add_argument("--theme", default="classic", help="theme key or legacy alias")
+    parser.add_argument("--output", "-o", type=Path, help="output HTML path")
+    parser.add_argument("--title", default="", help="override article title")
+    parser.add_argument("--subtitle", default="", help="optional subtitle")
+    parser.add_argument("--author", default="", help="optional author; never inferred")
+    parser.add_argument("--qr", type=Path, help="optional local QR image")
+    parser.add_argument("--preview-fonts", action="store_true", help="include local @font-face rules for browser QA only")
+    parser.add_argument("--font-base", help="font URL base used by --preview-fonts; defaults to a path relative to the output")
+    parser.add_argument("--no-validate", action="store_true", help="skip output validation")
+    parser.add_argument("--list-themes", action="store_true", help="list themes and compatibility aliases")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.list_themes:
+        for key, theme in THEMES.items():
+            print(f"{key:14} {theme.name} - {theme.description}")
+        print("aliases:", ", ".join(f"{old}->{new}" for old, new in ALIASES.items()))
+        return 0
+    if args.input is None:
+        parser.error("input is required unless --list-themes is used")
+    input_path = args.input.resolve()
+    if not input_path.is_file():
+        parser.error(f"input file not found: {input_path}")
+    canonical = canonical_theme(args.theme)
+    output_path = args.output or input_path.with_name(f"{input_path.stem}_{canonical}.html")
+    output_path = output_path.resolve()
+    font_base = args.font_base
+    if args.preview_fonts and not font_base:
+        font_dir = Path(__file__).resolve().parents[1] / "assets" / "fonts"
+        try:
+            font_base = Path(os.path.relpath(font_dir, output_path.parent)).as_posix()
+        except ValueError:
+            # Windows cannot form a relative path across drive letters.
+            font_base = font_dir.as_uri()
+    try:
+        result = convert(
+            input_path,
+            output_path,
+            canonical,
+            args.title,
+            args.subtitle,
+            args.author,
+            args.qr.resolve() if args.qr else None,
+            args.preview_fonts,
+            font_base or "assets/fonts",
+            not args.no_validate,
         )
-
-    # 写入文件
-    out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(html, encoding="utf-8")
-
-    size_kb = out_path.stat().st_size / 1024
-    print(f"✅ 生成完成：{out_path}（{size_kb:.0f} KB）")
-    print(f"")
-    print(f"使用方式：")
-    print(f"  1. 用浏览器打开 {out_path.name}")
-    print(f"  2. 全选（Ctrl+A）→ 复制（Ctrl+C）")
-    print("  3. 粘贴到微信公众号【新建图文】正文区")
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"created: {result}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
