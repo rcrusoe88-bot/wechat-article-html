@@ -69,15 +69,15 @@ def main() -> int:
         )
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     readme_lines = [
-        "# mRNA 体内细胞治疗主题展示",
+        "# anything-to-html 主题展示",
         "",
-        f"源文档：`{source.name}`。共生成 {len(THEMES)} 个主题；发布版 HTML 不含 `<style>`、外链图片或脚本。",
+        f"源文档：`{source.name}`。预览版使用 `Caveat Bold` 与 `XuanZongTi`（玄宗体）；共生成 {len(THEMES)} 个主题。发布版 HTML 不含 `<style>`、外链图片或脚本。",
         "",
-        "| 主题 | 发布版 | 本地字体预览 | README 面板 |",
-        "|---|---|---|---|",
+        "| 主题 | 发布版 | 本地字体预览 |",
+        "|---|---|---|",
     ]
     for key, theme in THEMES.items():
-        readme_lines.append(f"| {theme.name} (`{key}`) | [{key}.html]({key}.html) | [{key}.preview.html]({key}.preview.html) | `panels/{key}.png` |")
+        readme_lines.append(f"| {theme.name} (`{key}`) | [{key}.html]({key}.html) | [{key}.preview.html]({key}.preview.html) |")
     (output / "README.md").write_text("\n".join(readme_lines) + "\n", encoding="utf-8")
     print(f"built {len(THEMES)} themes in {output}")
     return 0

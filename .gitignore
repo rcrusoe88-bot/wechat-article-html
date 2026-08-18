@@ -8,3 +8,4 @@ examples/generated/
 examples/qa-screenshots/
 examples/qa-browser-metrics.json
 *.preview.html
+!examples/showcase/*.preview.html
