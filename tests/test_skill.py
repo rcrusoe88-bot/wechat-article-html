@@ -15,9 +15,10 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("name: anything-to-html", skill)
         self.assertIn("description:", skill)
         self.assertTrue((ROOT / "agents" / "openai.yaml").is_file())
-        self.assertTrue((ROOT / "assets" / "fonts" / "PreTesto-Italic.ttf").is_file())
+        self.assertTrue((ROOT / "assets" / "fonts" / "Caveat-Bold.ttf").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi.otf").is_file())
-        self.assertTrue((ROOT / "assets" / "fonts" / "OFL-1.1.txt").is_file())
+        self.assertTrue((ROOT / "assets" / "fonts" / "Caveat-OFL.txt").is_file())
+        self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi-OFL.txt").is_file())
 
     def test_no_old_font_or_stale_converter_contract(self) -> None:
         files = [
@@ -34,6 +35,7 @@ class SkillPackageTests(unittest.TestCase):
         combined = "\n".join(path.read_text(encoding="utf-8") for path in files)
         self.assertNotIn("TiGuFangSong", combined)
         self.assertNotIn("tkFangSong", combined)
+        self.assertNotIn("PreTesto", combined)
         self.assertNotIn("cdn.jsdelivr.net", combined)
 
 

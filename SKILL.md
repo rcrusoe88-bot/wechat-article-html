@@ -40,7 +40,7 @@ description: 将 Word、Markdown 或纯文本转换为可复制到微信公众�
 
 ## 字体策略
 
-主题使用用户提供的 `XuanZongTi`（玄宗体）作为中文主字体，`PreTesto` 只用于英文编号和装饰标签。两款字体位于 `assets/fonts/`。
+主题使用用户提供的 `XuanZongTi`（玄宗体）作为中文主字体，`Caveat Bold` 只用于英文编号和装饰标签。两款字体位于 `assets/fonts/`。
 
 微信公众号会移除 `@font-face`。因此发布版使用内联字体栈并提供确定性系统回退；`--preview-fonts` 仅用于本地视觉验收，会生成含 `<style>` 的预览文件，不得把预览文件作为公众号发布版交付。
 

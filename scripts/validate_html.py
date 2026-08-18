@@ -93,7 +93,7 @@ def validate_html(document: str, theme: str | None = None, allow_preview: bool =
     if not allow_preview and 'data-preview-fonts="true"' in document:
         errors.append("preview font marker found in publish output")
     if allow_preview and parser.style_blocks:
-        if "font-family:\"PreTesto\"" not in document or "font-family:\"XuanZongTi\"" not in document:
+        if "font-family:\"Caveat\"" not in document or "font-family:\"XuanZongTi\"" not in document:
             errors.append("font preview must load both approved fonts")
         if re.search(r"@font-face[^}]+https?://", document, re.IGNORECASE | re.DOTALL):
             errors.append("network fonts are not allowed")
@@ -105,8 +105,8 @@ def validate_html(document: str, theme: str | None = None, allow_preview: bool =
         errors.append("body must use max-width: 677px")
     if "XuanZongTi" not in body_style:
         errors.append("approved XuanZongTi body font stack is missing")
-    if "PreTesto" not in document:
-        errors.append("approved PreTesto label font stack is missing")
+    if "Caveat" not in document:
+        errors.append("approved Caveat label font stack is missing")
 
     for tag, attrs in tags:
         if tag == "img":

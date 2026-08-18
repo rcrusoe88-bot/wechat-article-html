@@ -20,7 +20,7 @@
 ## 固定字体
 
 - 中文标题与正文：`XuanZongTi, 玄宗体, FangSong, STFangsong, SimSun, serif`
-- 英文编号与装饰标签：`PreTesto, Georgia, Times New Roman, serif`
+- 英文编号与装饰标签：`Caveat, Segoe Print, Bradley Hand, cursive`
 - 不根据内容临时引入其他字体，不使用网络字体。
 
 ## 视觉契约

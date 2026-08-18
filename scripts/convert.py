@@ -16,7 +16,7 @@ from typing import Iterable
 
 
 BODY_FONT = "'XuanZongTi', '玄宗体', 'FangSong', 'STFangsong', 'SimSun', serif"
-LABEL_FONT = "'PreTesto', Georgia, 'Times New Roman', serif"
+LABEL_FONT = "'Caveat', 'Segoe Print', 'Bradley Hand', cursive"
 
 
 @dataclass(frozen=True)
@@ -378,24 +378,24 @@ def _header(theme: Theme, title: str, subtitle: str, author: str) -> str:
         meta += f'<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:{theme.muted};">文 / {safe_author}</p>'
 
     if theme.variant == "magazine":
-        return f'<header style="padding:0 28px 34px;text-align:center;border-top:5px solid {theme.primary};"><p style="margin:28px 0 16px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">FEATURE</p><h1 style="margin:0;font-size:26px;line-height:1.5;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="width:72px;height:1px;background:{theme.secondary};margin:24px auto 0;"></div></header>'
+        return f'<header style="padding:0 28px 34px;text-align:center;border-top:5px solid {theme.primary};"><p style="margin:28px 0 16px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">FEATURE</p><h1 style="margin:0;font-size:26px;line-height:1.5;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="width:72px;height:1px;background:{theme.secondary};margin:24px auto 0;"></div></header>'
     if theme.variant == "vibrant":
-        return f'<header style="padding:36px 24px 40px;background:linear-gradient(135deg,{theme.primary}, {theme.secondary});text-align:left;"><p style="margin:0 0 14px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:#5a2c0a;">TREND / NOW</p><h1 style="margin:0;font-size:26px;line-height:1.45;font-weight:800;color:#2d2118;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#5a2c0a")}</header>'
+        return f'<header style="padding:36px 24px 40px;background:linear-gradient(135deg,{theme.primary}, {theme.secondary});text-align:left;"><p style="margin:0 0 14px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:#5a2c0a;">TREND / NOW</p><h1 style="margin:0;font-size:26px;line-height:1.45;font-weight:800;color:#2d2118;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#5a2c0a")}</header>'
     if theme.variant == "swiss":
-        return f'<header style="padding:28px 24px 30px;border-top:10px solid {theme.primary};border-bottom:3px solid {theme.secondary};"><p style="margin:0 0 20px;font:italic 17px {LABEL_FONT};color:{theme.primary};">REPORT / 01</p><h1 style="margin:0;max-width:590px;font-size:34px;line-height:1.12;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+        return f'<header style="padding:28px 24px 30px;border-top:10px solid {theme.primary};border-bottom:3px solid {theme.secondary};"><p style="margin:0 0 20px;font:700 17px {LABEL_FONT};color:{theme.primary};">REPORT / 01</p><h1 style="margin:0;max-width:590px;font-size:34px;line-height:1.12;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
     if theme.variant == "minimal":
-        return f'<header style="padding:54px 28px 36px;border-bottom:1px solid {theme.border};"><p style="margin:0 0 28px;font:italic 16px {LABEL_FONT};letter-spacing:3px;color:{theme.muted};">ESSAY  /  01</p><h1 style="margin:0;font-size:30px;line-height:1.45;font-weight:500;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+        return f'<header style="padding:54px 28px 36px;border-bottom:1px solid {theme.border};"><p style="margin:0 0 28px;font:700 16px {LABEL_FONT};letter-spacing:3px;color:{theme.muted};">ESSAY  /  01</p><h1 style="margin:0;font-size:30px;line-height:1.45;font-weight:500;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
     if theme.variant == "chinese":
         return f'<header style="margin:18px;padding:30px 22px;text-align:center;border:3px double {theme.border};background:{theme.surface};"><p style="display:inline-block;margin:0 0 18px;padding:5px 8px;border:1px solid {theme.primary};font-size:14px;line-height:1;color:{theme.primary};">文</p><h1 style="margin:0;font-size:28px;line-height:1.6;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
     if theme.variant == "narrative":
-        return f'<header style="padding:38px 26px 32px;background:{theme.surface};border-top:7px solid {theme.primary};"><p style="margin:0 0 18px;font:italic 17px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">A TRUE STORY</p><h1 style="margin:0;font-size:30px;line-height:1.35;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="display:flex;gap:7px;margin-top:26px;"><span style="display:block;width:42px;height:4px;background:{theme.primary};"></span><span style="display:block;width:14px;height:4px;background:{theme.secondary};"></span></div></header>'
+        return f'<header style="padding:38px 26px 32px;background:{theme.surface};border-top:7px solid {theme.primary};"><p style="margin:0 0 18px;font:700 17px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">A TRUE STORY</p><h1 style="margin:0;font-size:30px;line-height:1.35;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="display:flex;gap:7px;margin-top:26px;"><span style="display:block;width:42px;height:4px;background:{theme.primary};"></span><span style="display:block;width:14px;height:4px;background:{theme.secondary};"></span></div></header>'
     if theme.variant == "academic":
-        return f'<header style="padding:34px 26px 36px;background:{theme.primary};border-top:6px solid {theme.secondary};"><p style="margin:0 0 15px;font:italic 15px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">REVIEW ARTICLE</p><h1 style="margin:0;font-size:27px;line-height:1.45;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
+        return f'<header style="padding:34px 26px 36px;background:{theme.primary};border-top:6px solid {theme.secondary};"><p style="margin:0 0 15px;font:700 15px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">REVIEW ARTICLE</p><h1 style="margin:0;font-size:27px;line-height:1.45;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
     if theme.variant == "cell":
-        return f'<header style="padding:38px 26px 42px;background:{theme.primary};"><div style="width:54px;height:7px;background:{theme.secondary};margin-bottom:24px;"></div><p style="margin:0 0 14px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">CELL / INSIGHT</p><h1 style="margin:0;font-size:29px;line-height:1.4;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
+        return f'<header style="padding:38px 26px 42px;background:{theme.primary};"><div style="width:54px;height:7px;background:{theme.secondary};margin-bottom:24px;"></div><p style="margin:0 0 14px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">CELL / INSIGHT</p><h1 style="margin:0;font-size:29px;line-height:1.4;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
     if theme.variant == "fresh":
         return f'<header style="padding:34px 26px 36px;background:{theme.surface};border-bottom:1px solid {theme.border};"><div style="display:flex;gap:8px;margin-bottom:22px;"><span style="width:13px;height:13px;border-radius:50%;background:{theme.primary};"></span><span style="width:13px;height:13px;border-radius:50%;background:{theme.secondary};"></span></div><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
-    return f'<header style="padding:34px 26px 30px;border-top:5px solid {theme.primary};"><p style="margin:0 0 16px;font:italic 15px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">WECHAT ARTICLE</p><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+    return f'<header style="padding:34px 26px 30px;border-top:5px solid {theme.primary};"><p style="margin:0 0 16px;font:700 15px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">WECHAT ARTICLE</p><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
 
 
 def _heading(theme: Theme, text: str, level: int, chapter: int) -> str:
@@ -404,23 +404,23 @@ def _heading(theme: Theme, text: str, level: int, chapter: int) -> str:
         return f'<h3 style="margin:28px 0 12px;font-size:18px;line-height:1.6;font-weight:700;color:{theme.text};">{content}</h3>'
     number = f"{chapter:02d}"
     if theme.variant == "magazine":
-        return f'<section style="margin:46px 0 22px;text-align:center;"><p style="margin:0 0 8px;font:italic 15px {LABEL_FONT};letter-spacing:3px;color:{theme.secondary};">CHAPTER {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:600;color:{theme.text};">{content}</h2></section>'
+        return f'<section style="margin:46px 0 22px;text-align:center;"><p style="margin:0 0 8px;font:700 15px {LABEL_FONT};letter-spacing:3px;color:{theme.secondary};">CHAPTER {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:600;color:{theme.text};">{content}</h2></section>'
     if theme.variant == "swiss":
-        return f'<section style="display:flex;align-items:flex-start;gap:16px;margin:44px 0 20px;padding-top:12px;border-top:3px solid {theme.secondary};"><span style="display:block;min-width:52px;font:italic 24px {LABEL_FONT};color:{theme.primary};">{number}</span><h2 style="min-width:0;margin:0;font-size:24px;line-height:1.3;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{content}</h2></section>'
+        return f'<section style="display:flex;align-items:flex-start;gap:16px;margin:44px 0 20px;padding-top:12px;border-top:3px solid {theme.secondary};"><span style="display:block;min-width:52px;font:700 24px {LABEL_FONT};color:{theme.primary};">{number}</span><h2 style="min-width:0;margin:0;font-size:24px;line-height:1.3;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{content}</h2></section>'
     if theme.variant == "minimal":
-        return f'<section style="margin:52px 0 22px;"><p style="margin:0 0 10px;font:italic 17px {LABEL_FONT};color:{theme.muted};">{number}</p><h2 style="margin:0;padding-bottom:12px;border-bottom:1px solid {theme.border};font-size:23px;line-height:1.5;font-weight:500;color:{theme.text};">{content}</h2></section>'
+        return f'<section style="margin:52px 0 22px;"><p style="margin:0 0 10px;font:700 17px {LABEL_FONT};color:{theme.muted};">{number}</p><h2 style="margin:0;padding-bottom:12px;border-bottom:1px solid {theme.border};font-size:23px;line-height:1.5;font-weight:500;color:{theme.text};">{content}</h2></section>'
     if theme.variant == "chinese":
         return f'<section style="margin:44px 0 22px;text-align:center;"><span style="display:inline-block;margin-bottom:10px;padding:4px 10px;border:1px solid {theme.secondary};font-size:13px;color:{theme.primary};">第 {number} 章</span><h2 style="margin:0;font-size:22px;line-height:1.6;font-weight:600;color:{theme.text};">{content}</h2></section>'
     if theme.variant == "narrative":
-        return f'<section style="margin:48px 0 22px;padding-left:18px;border-left:5px solid {theme.secondary};"><p style="margin:0 0 6px;font:italic 16px {LABEL_FONT};color:{theme.primary};">SCENE {number}</p><h2 style="margin:0;font-size:25px;line-height:1.35;font-weight:700;color:{theme.text};">{content}</h2></section>'
+        return f'<section style="margin:48px 0 22px;padding-left:18px;border-left:5px solid {theme.secondary};"><p style="margin:0 0 6px;font:700 16px {LABEL_FONT};color:{theme.primary};">SCENE {number}</p><h2 style="margin:0;font-size:25px;line-height:1.35;font-weight:700;color:{theme.text};">{content}</h2></section>'
     if theme.variant == "academic":
-        return f'<section style="margin:42px 0 20px;padding:14px 18px;background:{theme.primary};"><p style="margin:0 0 5px;font:italic 14px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">SECTION {number}</p><h2 style="margin:0;font-size:21px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
+        return f'<section style="margin:42px 0 20px;padding:14px 18px;background:{theme.primary};"><p style="margin:0 0 5px;font:700 14px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">SECTION {number}</p><h2 style="margin:0;font-size:21px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
     if theme.variant == "cell":
-        return f'<section style="margin:42px 0 20px;padding:18px 20px;background:{theme.primary};border-left:8px solid {theme.secondary};"><p style="margin:0 0 6px;font:italic 14px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">SECTION {number}</p><h2 style="margin:0;font-size:22px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
+        return f'<section style="margin:42px 0 20px;padding:18px 20px;background:{theme.primary};border-left:8px solid {theme.secondary};"><p style="margin:0 0 6px;font:700 14px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">SECTION {number}</p><h2 style="margin:0;font-size:22px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
     if theme.variant == "vibrant":
-        return f'<section style="display:flex;align-items:flex-start;gap:12px;margin:38px 0 18px;"><span style="display:inline-block;min-width:38px;padding:6px 5px;border-radius:4px;background:{theme.primary};font:italic 16px {LABEL_FONT};text-align:center;color:#ffffff;">{number}</span><h2 style="margin:2px 0 0;font-size:22px;line-height:1.45;font-weight:800;color:{theme.text};">{content}</h2></section>'
+        return f'<section style="display:flex;align-items:flex-start;gap:12px;margin:38px 0 18px;"><span style="display:inline-block;min-width:38px;padding:6px 5px;border-radius:4px;background:{theme.primary};font:700 16px {LABEL_FONT};text-align:center;color:#ffffff;">{number}</span><h2 style="margin:2px 0 0;font-size:22px;line-height:1.45;font-weight:800;color:{theme.text};">{content}</h2></section>'
     if theme.variant == "fresh":
-        return f'<section style="margin:38px 0 18px;padding:14px 18px;background:{theme.surface};border-left:4px solid {theme.primary};border-radius:0 6px 6px 0;"><p style="margin:0 0 4px;font:italic 14px {LABEL_FONT};color:{theme.secondary};">NOTE {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2></section>'
+        return f'<section style="margin:38px 0 18px;padding:14px 18px;background:{theme.surface};border-left:4px solid {theme.primary};border-radius:0 6px 6px 0;"><p style="margin:0 0 4px;font:700 14px {LABEL_FONT};color:{theme.secondary};">NOTE {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2></section>'
     return f'<h2 style="margin:40px 0 18px;padding:0 0 8px 14px;border-left:4px solid {theme.primary};border-bottom:1px solid {theme.border};font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2>'
 
 
@@ -429,7 +429,7 @@ def _paragraph(theme: Theme, text: str, drop_cap: bool = False) -> str:
     if drop_cap and content:
         first = content[0]
         rest = content[1:]
-        content = f'<span style="float:left;margin:5px 9px 0 0;font:italic 48px/0.8 {LABEL_FONT};color:{theme.primary};">{first}</span>{rest}'
+        content = f'<span style="float:left;margin:5px 9px 0 0;font:700 48px/0.8 {LABEL_FONT};color:{theme.primary};">{first}</span>{rest}'
     return f'<p style="margin:0 0 20px;font-size:16px;line-height:1.95;text-align:justify;color:{theme.text};overflow-wrap:anywhere;">{content}</p>'
 
 
@@ -446,7 +446,7 @@ def _list(theme: Theme, block: Block) -> str:
     if theme.variant == "magazine" and not block.ordered:
         cards = []
         for index, item in enumerate(block.items, 1):
-            cards.append(f'<div style="margin:0 0 12px;padding:17px 18px;background:{theme.surface};border-left:3px solid {theme.secondary};"><p style="margin:0 0 5px;font:italic 13px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">POINT {index:02d}</p><p style="margin:0;font-size:16px;line-height:1.8;color:{theme.text};">{inline_markup(item, theme)}</p></div>')
+            cards.append(f'<div style="margin:0 0 12px;padding:17px 18px;background:{theme.surface};border-left:3px solid {theme.secondary};"><p style="margin:0 0 5px;font:700 13px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">POINT {index:02d}</p><p style="margin:0;font-size:16px;line-height:1.8;color:{theme.text};">{inline_markup(item, theme)}</p></div>')
         return f'<section style="margin:24px 0;">{"".join(cards)}</section>'
     tag = "ol" if block.ordered else "ul"
     marker = "decimal" if block.ordered else "square" if theme.variant == "swiss" else "disc"
@@ -482,7 +482,7 @@ def _footer(theme: Theme, qr_data_uri: str) -> str:
         qr = f'<img data-qr-code="true" src="{qr_data_uri}" alt="公众号二维码" style="display:block;width:144px;height:144px;margin:18px auto 0;object-fit:contain;" />'
     else:
         qr = '<!-- QR_CODE_IMAGE_BASE64_PLACEHOLDER --><div data-qr-placeholder="true" style="display:flex;width:142px;height:142px;margin:18px auto 0;align-items:center;justify-content:center;border:1px solid #c8c8c8;background:#ffffff;font-size:14px;color:#888888;">二维码</div>'
-    return f'<footer data-fixed-footer="true" style="padding:34px 24px 40px;border-top:1px solid {theme.border};"><section style="margin:0 0 30px;"><p style="margin:0 0 16px;font:italic 16px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">MORE TO READ</p>{"".join(history)}</section><section style="padding:24px 18px;text-align:center;background:{theme.surface};border:1px solid {theme.border};"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.text};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
+    return f'<footer data-fixed-footer="true" style="padding:34px 24px 40px;border-top:1px solid {theme.border};"><section style="margin:0 0 30px;"><p style="margin:0 0 16px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">MORE TO READ</p>{"".join(history)}</section><section style="padding:24px 18px;text-align:center;background:{theme.surface};border:1px solid {theme.border};"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.text};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
 
 
 def render_html(
@@ -535,7 +535,7 @@ def render_html(
         safe_base = font_base.rstrip("/\\").replace("\\", "/")
         preview_attr = ' data-preview-fonts="true"'
         preview_css = f'''<style>
-@font-face{{font-family:"PreTesto";src:url("{safe_base}/PreTesto-Italic.ttf") format("truetype");font-style:italic;font-weight:400;}}
+@font-face{{font-family:"Caveat";src:url("{safe_base}/Caveat-Bold.ttf") format("truetype");font-style:normal;font-weight:700;}}
 @font-face{{font-family:"XuanZongTi";src:url("{safe_base}/XuanZongTi.otf") format("opentype");font-style:normal;font-weight:400;}}
 </style>'''
 
