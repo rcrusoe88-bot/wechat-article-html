@@ -19,6 +19,8 @@ class SkillPackageTests(unittest.TestCase):
         self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi.otf").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "Caveat-OFL.txt").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi-OFL.txt").is_file())
+        self.assertGreater((ROOT / "assets" / "fonts" / "XuanZongTi.otf").stat().st_size, 1_000_000)
+        self.assertGreater((ROOT / "assets" / "fonts" / "Caveat-Bold.ttf").stat().st_size, 100_000)
 
     def test_no_old_font_or_stale_converter_contract(self) -> None:
         files = [

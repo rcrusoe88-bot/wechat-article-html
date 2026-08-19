@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import html
+import io
 import mimetypes
 import os
 import re
@@ -17,6 +18,7 @@ from typing import Iterable
 
 BODY_FONT = "'XuanZongTi', '玄宗体', 'FangSong', 'STFangsong', 'SimSun', serif"
 LABEL_FONT = "'Caveat', 'Segoe Print', 'Bradley Hand', cursive"
+FONT_DIR = Path(__file__).resolve().parents[1] / "assets" / "fonts"
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,40 @@ def canonical_theme(value: str) -> str:
         choices = ", ".join(sorted([*THEMES, *ALIASES]))
         raise ValueError(f"unknown theme {value!r}; choose one of: {choices}")
     return key
+
+
+def _subset_font_data_uri(font_path: Path, text: str) -> str:
+    """Return a WOFF2 data URI containing only glyphs used by this article."""
+    try:
+        from fontTools import subset
+        from fontTools.ttLib import TTFont
+    except ImportError as exc:
+        raise RuntimeError(
+            "embedded fonts require fonttools and brotli; run: pip install -r requirements.txt"
+        ) from exc
+    if not font_path.is_file():
+        raise RuntimeError(f"font asset is missing: {font_path}")
+    options = subset.Options()
+    options.flavor = "woff2"
+    options.layout_features = ["*"]
+    options.name_IDs = [0, 1, 2, 3, 4, 5, 6]
+    options.name_legacy = True
+    font = TTFont(font_path, recalcTimestamp=False)
+    subsetter = subset.Subsetter(options=options)
+    subsetter.populate(text="".join(dict.fromkeys(text)))
+    subsetter.subset(font)
+    buffer = io.BytesIO()
+    font.save(buffer)
+    return "data:font/woff2;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def _document_text(blocks: list[Block], title: str, subtitle: str, author: str) -> str:
+    fixed = "MORE TO READ NOTE CHAPTER 关注公众号 长按识别二维码 阅读更多内容 二维码"
+    parts = [title, subtitle, author, fixed]
+    for block in blocks:
+        parts.extend([block.text, block.caption, *block.items])
+        parts.extend(cell for row in block.rows for cell in row)
+    return "\n".join(parts)
 
 
 def image_to_data_uri(path_value: str, base_dir: Path) -> str:
@@ -494,6 +530,7 @@ def render_html(
     qr_data_uri: str = "",
     preview_fonts: bool = False,
     font_base: str = "assets/fonts",
+    embedded_fonts: bool = False,
 ) -> str:
     theme = THEMES[canonical_theme(theme_key)]
     body_blocks = list(blocks)
@@ -529,12 +566,21 @@ def render_html(
         elif block.kind == "divider":
             rendered.append(f'<hr style="height:1px;margin:34px 0;border:0;background:{theme.border};" />')
 
-    preview_css = ""
-    preview_attr = ""
-    if preview_fonts:
+    font_css = ""
+    font_attr = ""
+    if embedded_fonts:
+        glyph_text = _document_text(body_blocks, title, subtitle, author)
+        caveat_uri = _subset_font_data_uri(FONT_DIR / "Caveat-Bold.ttf", glyph_text)
+        xuanzong_uri = _subset_font_data_uri(FONT_DIR / "XuanZongTi.otf", glyph_text)
+        font_attr = ' data-embedded-fonts="true"'
+        font_css = f'''<style>
+@font-face{{font-family:"Caveat";src:url("{caveat_uri}") format("woff2");font-style:normal;font-weight:700;font-display:swap;}}
+@font-face{{font-family:"XuanZongTi";src:url("{xuanzong_uri}") format("woff2");font-style:normal;font-weight:400;font-display:swap;}}
+</style>'''
+    elif preview_fonts:
         safe_base = font_base.rstrip("/\\").replace("\\", "/")
-        preview_attr = ' data-preview-fonts="true"'
-        preview_css = f'''<style>
+        font_attr = ' data-preview-fonts="true"'
+        font_css = f'''<style>
 @font-face{{font-family:"Caveat";src:url("{safe_base}/Caveat-Bold.ttf") format("truetype");font-style:normal;font-weight:700;}}
 @font-face{{font-family:"XuanZongTi";src:url("{safe_base}/XuanZongTi.otf") format("opentype");font-style:normal;font-weight:400;}}
 </style>'''
@@ -545,9 +591,9 @@ def render_html(
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>{html.escape(title)}</title>
-{preview_css}
+{font_css}
 </head>
-<body data-theme="{theme.key}"{preview_attr} style="max-width:677px;margin:0 auto;padding:0;background:{theme.background};font-family:{BODY_FONT};color:{theme.text};line-height:1.85;">
+<body data-theme="{theme.key}"{font_attr} style="max-width:677px;margin:0 auto;padding:0;background:{theme.background};font-family:{BODY_FONT};color:{theme.text};line-height:1.85;">
 {_header(theme, title, subtitle, author)}
 <main style="padding:10px 26px 34px;">
 {''.join(rendered)}
@@ -569,6 +615,7 @@ def convert(
     preview_fonts: bool = False,
     font_base: str = "assets/fonts",
     validate: bool = True,
+    embedded_fonts: bool = True,
 ) -> Path:
     blocks, document_title = read_input(input_path)
     blocks = list(blocks)
@@ -587,13 +634,16 @@ def convert(
     final_title = title or inferred_title or document_title or input_path.stem
     qr_data = image_to_data_uri(str(qr_path), qr_path.parent) if qr_path else ""
     canonical = canonical_theme(theme_key)
-    output = render_html(blocks, final_title, canonical, subtitle, author, qr_data, preview_fonts, font_base)
+    output = render_html(
+        blocks, final_title, canonical, subtitle, author, qr_data,
+        preview_fonts, font_base, embedded_fonts,
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(output, encoding="utf-8")
     if validate:
         from validate_html import validate_html
 
-        errors = validate_html(output, theme=canonical, allow_preview=preview_fonts)
+        errors = validate_html(output, theme=canonical, allow_preview=preview_fonts or embedded_fonts)
         if errors:
             output_path.unlink(missing_ok=True)
             details = "\n".join(f"- {error}" for error in errors)
@@ -610,7 +660,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--subtitle", default="", help="optional subtitle")
     parser.add_argument("--author", default="", help="optional author; never inferred")
     parser.add_argument("--qr", type=Path, help="optional local QR image")
-    parser.add_argument("--preview-fonts", action="store_true", help="include local @font-face rules for browser QA only")
+    font_mode = parser.add_mutually_exclusive_group()
+    font_mode.add_argument("--wechat", action="store_true", help="omit @font-face for WeChat editor compatibility")
+    font_mode.add_argument("--preview-fonts", action="store_true", help="load font files by local URL instead of embedding subsets")
     parser.add_argument("--font-base", help="font URL base used by --preview-fonts; defaults to a path relative to the output")
     parser.add_argument("--no-validate", action="store_true", help="skip output validation")
     parser.add_argument("--list-themes", action="store_true", help="list themes and compatibility aliases")
@@ -653,6 +705,7 @@ def main(argv: list[str] | None = None) -> int:
             args.preview_fonts,
             font_base or "assets/fonts",
             not args.no_validate,
+            not args.wechat and not args.preview_fonts,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

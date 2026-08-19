@@ -88,15 +88,20 @@ def validate_html(document: str, theme: str | None = None, allow_preview: bool =
     if parser.style_blocks:
         if not allow_preview:
             errors.append("style block found in publish output")
-        elif 'data-preview-fonts="true"' not in document:
-            errors.append("style block is allowed only in an explicit font preview")
-    if not allow_preview and 'data-preview-fonts="true"' in document:
-        errors.append("preview font marker found in publish output")
+        elif not any(marker in document for marker in ('data-preview-fonts="true"', 'data-embedded-fonts="true"')):
+            errors.append("style block is allowed only for an explicit font mode")
+    if not allow_preview and any(marker in document for marker in ('data-preview-fonts="true"', 'data-embedded-fonts="true"')):
+        errors.append("font mode marker found in WeChat output")
     if allow_preview and parser.style_blocks:
         if "font-family:\"Caveat\"" not in document or "font-family:\"XuanZongTi\"" not in document:
             errors.append("font preview must load both approved fonts")
         if re.search(r"@font-face[^}]+https?://", document, re.IGNORECASE | re.DOTALL):
             errors.append("network fonts are not allowed")
+        if 'data-embedded-fonts="true"' in document:
+            if document.count("data:font/woff2;base64,") != 2:
+                errors.append("embedded font output must contain two WOFF2 data URIs")
+            if re.search(r'@font-face[^}]+src:url\("(?!data:)', document, re.IGNORECASE | re.DOTALL):
+                errors.append("embedded font output must not depend on local font paths")
 
     tags = parser.attrs_by_tag
     body_attrs = next((attrs for tag, attrs in tags if tag == "body"), {})

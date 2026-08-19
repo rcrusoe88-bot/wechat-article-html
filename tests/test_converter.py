@@ -109,6 +109,14 @@ class ConverterTests(unittest.TestCase):
         self.assertTrue(validate_html(preview, "classic"))
         self.assertEqual(validate_html(preview, "classic", allow_preview=True), [])
 
+    def test_embedded_fonts_are_portable_subsets(self) -> None:
+        blocks = parse_markdown("正文 ABC", ROOT)
+        document = render_html(blocks, "嵌入字体", "classic", embedded_fonts=True)
+        self.assertIn('data-embedded-fonts="true"', document)
+        self.assertEqual(document.count("data:font/woff2;base64,"), 2)
+        self.assertNotIn("assets/fonts", document)
+        self.assertEqual(validate_html(document, "classic", allow_preview=True), [])
+
     def test_docx_parses_heading_table_and_image(self) -> None:
         try:
             from docx import Document

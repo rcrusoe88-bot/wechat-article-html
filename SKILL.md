@@ -5,7 +5,7 @@ description: 将 Word、Markdown 或纯文本转换为可复制到微信公众�
 
 # Anything to HTML
 
-将内容转换为自包含、可审计、适合微信公众号复制粘贴的 HTML。默认输出使用纯内联样式，不依赖外部 CSS、网络字体或外链图片。
+将内容转换为自包含、可审计的 HTML。默认输出会把文章实际使用的字体字形压缩成 WOFF2 子集并内嵌，适合浏览器、WorkBuddy 和 README 展示；需要复制到微信公众号编辑器时使用 `--wechat`。
 
 ## 工作流
 
@@ -15,6 +15,12 @@ description: 将 Word、Markdown 或纯文本转换为可复制到微信公众�
 
    ```powershell
    python scripts/convert.py INPUT --theme THEME --output OUTPUT.html
+   ```
+
+   微信公众号版本执行：
+
+   ```powershell
+   python scripts/convert.py INPUT --theme THEME --output OUTPUT.wechat.html --wechat
    ```
 
 4. 验证。转换器默认自动验证；手工修改后再次执行：
@@ -31,7 +37,7 @@ description: 将 Word、Markdown 或纯文本转换为可复制到微信公众�
 
 ## 不可破坏的约束
 
-- 发布版 HTML 只能使用元素自身的 `style` 属性；禁止 `<style>`、外部样式表和脚本。
+- `--wechat` 输出只能使用元素自身的 `style` 属性；禁止 `<style>`、外部样式表和脚本。
 - 所有正文图片与二维码必须是 `data:image/...;base64,...`。缺少二维码时使用注释占位，不伪造路径。
 - 禁止 `<thead>`、`<tbody>` 和 `<tr style="...">`；表格样式写在 `<th>`、`<td>` 上。
 - 保留 3 条“往期精选”占位和一个关注/二维码模块。
@@ -42,7 +48,7 @@ description: 将 Word、Markdown 或纯文本转换为可复制到微信公众�
 
 主题使用用户提供的 `XuanZongTi`（玄宗体）作为中文主字体，`Caveat Bold` 只用于英文编号和装饰标签。两款字体位于 `assets/fonts/`。
 
-微信公众号会移除 `@font-face`。因此发布版使用内联字体栈并提供确定性系统回退；`--preview-fonts` 仅用于本地视觉验收，会生成含 `<style>` 的预览文件，不得把预览文件作为公众号发布版交付。
+默认输出以内嵌 `data:font/woff2` 加载两款字体，不依赖安装目录、网络或用户电脑字体。转换器只保留文章实际使用的字形，避免嵌入完整的 39 MB 中文字体。微信公众号会移除 `@font-face`，因此交付公众号时必须使用 `--wechat`；该模式保留确定性系统回退。`--preview-fonts` 是兼容旧流程的本地路径预览模式。
 
 ## 输出位置
 

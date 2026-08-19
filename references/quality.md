@@ -2,7 +2,7 @@
 
 ## 自动门槛
 
-发布版必须通过 `scripts/validate_html.py`：
+`--wechat` 发布版必须通过 `scripts/validate_html.py`：
 
 - 没有 `<style>`、外部 CSS、JavaScript 或事件属性；
 - 图片全部为 base64 data URI；
@@ -32,4 +32,4 @@
 
 ## 发布前检查
 
-预览文件和发布文件必须分开：带 `data-preview-fonts="true"` 的 HTML 仅供本地查看。交付公众号版本时重新生成不带 `--preview-fonts` 的文件，并运行严格验证。
+默认输出必须带 `data-embedded-fonts="true"`，包含两个 WOFF2 data URI，且不依赖本地路径。交付公众号版本时使用 `--wechat` 重新生成，并运行严格验证。

@@ -8,8 +8,9 @@
 - Word 正文、表格和内嵌图片按文档顺序提取
 - Markdown 标题、列表、引用、代码、表格和本地图片转换
 - 正文图片与二维码自动转为 base64
-- 发布版严格禁止外部 CSS、脚本、网络字体和外链图片
-- 本地预览可加载 `Caveat Bold` 与 `XuanZongTi`（玄宗体）字体
+- 默认将 `Caveat Bold` 与 `XuanZongTi`（玄宗体）按文章字符子集化并内嵌
+- 不依赖系统安装字体、网络字体或 Skill 所在路径
+- `--wechat` 生成严格全内联、无 `<style>` 的微信公众号版本
 - 转换完成后自动执行 HTML 与主题契约验证
 
 ## 使用
@@ -18,16 +19,17 @@
 pip install -r requirements.txt
 python scripts/convert.py article.docx --theme academic-blue --output article.html
 python scripts/convert.py article.md --theme magazine --output article.html
+python scripts/convert.py article.md --theme magazine --output article.wechat.html --wechat
 python scripts/convert.py --list-themes
 ```
 
-本地字体预览：
+默认生成的 HTML 已包含两个 WOFF2 字体子集。需要检查原始本地字体文件时可使用：
 
 ```powershell
 python scripts/convert.py article.md --theme classic --output article.preview.html --preview-fonts
 ```
 
-转换器会自动计算输出文件到字体目录的相对路径。带 `--preview-fonts` 的文件包含 `<style>@font-face</style>`，仅用于浏览器验收，不能作为微信公众号发布版。
+`--preview-fonts` 会自动计算输出文件到字体目录的相对路径。默认嵌入字体版与该本地预览版都包含 `<style>@font-face</style>`；微信公众号版本必须加 `--wechat`。
 
 ## 主题展示
 
