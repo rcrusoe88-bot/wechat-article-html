@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-BODY_FONT = "'XuanZongTi', '玄宗体', 'FangSong', 'STFangsong', 'SimSun', serif"
+BODY_FONT = "'Caveat', 'XuanZongTi', '玄宗体', 'FangSong', 'STFangsong', 'SimSun', serif"
 LABEL_FONT = "'Caveat', 'Segoe Print', 'Bradley Hand', cursive"
 FONT_DIR = Path(__file__).resolve().parents[1] / "assets" / "fonts"
 
@@ -574,14 +574,14 @@ def render_html(
         xuanzong_uri = _subset_font_data_uri(FONT_DIR / "XuanZongTi.otf", glyph_text)
         font_attr = ' data-embedded-fonts="true"'
         font_css = f'''<style>
-@font-face{{font-family:"Caveat";src:url("{caveat_uri}") format("woff2");font-style:normal;font-weight:700;font-display:swap;}}
+@font-face{{font-family:"Caveat";src:url("{caveat_uri}") format("woff2");font-style:normal;font-weight:400 700;font-display:swap;}}
 @font-face{{font-family:"XuanZongTi";src:url("{xuanzong_uri}") format("woff2");font-style:normal;font-weight:400;font-display:swap;}}
 </style>'''
     elif preview_fonts:
         safe_base = font_base.rstrip("/\\").replace("\\", "/")
         font_attr = ' data-preview-fonts="true"'
         font_css = f'''<style>
-@font-face{{font-family:"Caveat";src:url("{safe_base}/Caveat-Bold.ttf") format("truetype");font-style:normal;font-weight:700;}}
+@font-face{{font-family:"Caveat";src:url("{safe_base}/Caveat-Bold.ttf") format("truetype");font-style:normal;font-weight:400 700;}}
 @font-face{{font-family:"XuanZongTi";src:url("{safe_base}/XuanZongTi.otf") format("opentype");font-style:normal;font-weight:400;}}
 </style>'''
 

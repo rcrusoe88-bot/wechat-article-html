@@ -47,7 +47,7 @@ description: 将 Word、Markdown 或纯文本转换为嵌入 Caveat Bold 和玄�
 
 ## 字体策略
 
-主题使用用户提供的 `XuanZongTi`（玄宗体）作为中文主字体，`Caveat Bold` 只用于英文编号和装饰标签。两款字体位于 `assets/fonts/`。
+主题使用用户提供的 `XuanZongTi`（玄宗体）作为中文主字体，`Caveat Bold` 作为英文、数字和英文装饰标签字体。内联字体栈固定为 `Caveat -> XuanZongTi`：Caveat 不含中文字形，因此中文会自动回退至玄宗体。两款字体位于 `assets/fonts/`。
 
 默认输出以内嵌 `data:font/woff2` 加载两款字体，不依赖安装目录、网络或用户电脑字体。转换器只保留文章实际使用的字形，避免嵌入完整的 39 MB 中文字体。`--wechat` 必定会放弃这两款字体，仅用于明确的微信后台粘贴场景；不能把它交付为带字体的浏览器 HTML。`--preview-fonts` 是兼容旧流程的本地路径预览模式。
 

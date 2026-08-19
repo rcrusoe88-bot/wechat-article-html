@@ -115,6 +115,8 @@ class ConverterTests(unittest.TestCase):
         self.assertIn('data-embedded-fonts="true"', document)
         self.assertEqual(document.count("data:font/woff2;base64,"), 2)
         self.assertNotIn("assets/fonts", document)
+        self.assertIn("font-family:'Caveat', 'XuanZongTi'", document)
+        self.assertIn('font-weight:400 700', document)
         self.assertEqual(validate_html(document, "classic", allow_preview=True), [])
 
     def test_docx_parses_heading_table_and_image(self) -> None:
