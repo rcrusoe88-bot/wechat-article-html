@@ -35,6 +35,10 @@ class ValidatorTests(unittest.TestCase):
         errors = validate_html(bad, "classic")
         self.assertTrue(any("expected 3" in error for error in errors), errors)
 
+    def test_wechat_mode_rejects_custom_fonts(self) -> None:
+        errors = validate_html(self.valid, "classic", wechat_mode=True)
+        self.assertTrue(any("must not declare font-family" in error for error in errors), errors)
+
 
 if __name__ == "__main__":
     unittest.main()

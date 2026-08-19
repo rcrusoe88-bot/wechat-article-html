@@ -13,6 +13,7 @@ sys.path.insert(0, str(SCRIPTS))
 from convert import (  # noqa: E402
     ALIASES,
     Block,
+    LABEL_FONT,
     THEMES,
     canonical_theme,
     parse_docx,
@@ -118,6 +119,15 @@ class ConverterTests(unittest.TestCase):
         self.assertIn("font-family:'Caveat', 'XuanZongTi'", document)
         self.assertIn('font-weight:400 700', document)
         self.assertEqual(validate_html(document, "classic", allow_preview=True), [])
+
+    def test_wechat_mode_removes_all_custom_font_declarations(self) -> None:
+        blocks = parse_markdown("English 123 中文", ROOT)
+        document = render_html(blocks, "标题", "classic", wechat_mode=True)
+        self.assertNotIn("font-family", document)
+        self.assertNotIn("Caveat", document)
+        self.assertNotIn("XuanZongTi", document)
+        self.assertNotIn(LABEL_FONT, document)
+        self.assertEqual(validate_html(document, "classic", wechat_mode=True), [])
 
     def test_docx_parses_heading_table_and_image(self) -> None:
         try:

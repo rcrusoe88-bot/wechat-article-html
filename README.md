@@ -10,7 +10,7 @@
 - 正文图片与二维码自动转为 base64
 - 默认将 `Caveat Bold` 与 `XuanZongTi`（玄宗体）按文章字符子集化并内嵌
 - 不依赖系统安装字体、网络字体或 Skill 所在路径
-- `--wechat` 生成严格全内联、无 `<style>` 的微信公众号版本
+- `--wechat` 生成严格全内联、无 `<style>`、无 `font-family` 的微信公众号原生字体版本
 - 转换完成后自动执行 HTML 与主题契约验证
 
 ## 使用
@@ -29,7 +29,7 @@ python scripts/convert.py --list-themes
 python scripts/convert.py article.md --theme classic --output article.preview.html --preview-fonts
 ```
 
-`--preview-fonts` 会自动计算输出文件到字体目录的相对路径。默认嵌入字体版与该本地预览版都包含 `<style>@font-face</style>`；微信公众号版本必须加 `--wechat`。
+`--preview-fonts` 会自动计算输出文件到字体目录的相对路径。默认嵌入字体版与该本地预览版都包含 `<style>@font-face</style>`；微信公众号版本必须加 `--wechat`，并交给微信的默认字体。
 
 ## 主题展示
 

@@ -112,6 +112,19 @@ def _document_text(blocks: list[Block], title: str, subtitle: str, author: str) 
     return "\n".join(parts)
 
 
+def _wechat_native_font_html(document: str) -> str:
+    """Remove all custom font instructions for the WeChat editor and reader."""
+    document = re.sub(
+        rf"font:700\s+(\d+px)(?:/([\d.]+))?\s+{re.escape(LABEL_FONT)};",
+        lambda match: (
+            f"font-size:{match.group(1)};font-weight:700;"
+            + (f"line-height:{match.group(2)};" if match.group(2) else "")
+        ),
+        document,
+    )
+    return re.sub(r"font-family:[^;]+;", "", document)
+
+
 def image_to_data_uri(path_value: str, base_dir: Path) -> str:
     value = path_value.strip().strip("<>")
     if value.startswith("data:image/"):
@@ -531,6 +544,7 @@ def render_html(
     preview_fonts: bool = False,
     font_base: str = "assets/fonts",
     embedded_fonts: bool = False,
+    wechat_mode: bool = False,
 ) -> str:
     theme = THEMES[canonical_theme(theme_key)]
     body_blocks = list(blocks)
@@ -585,7 +599,7 @@ def render_html(
 @font-face{{font-family:"XuanZongTi";src:url("{safe_base}/XuanZongTi.otf") format("opentype");font-style:normal;font-weight:400;}}
 </style>'''
 
-    return f'''<!DOCTYPE html>
+    document = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
@@ -602,6 +616,7 @@ def render_html(
 </body>
 </html>
 '''
+    return _wechat_native_font_html(document) if wechat_mode else document
 
 
 def convert(
@@ -616,6 +631,7 @@ def convert(
     font_base: str = "assets/fonts",
     validate: bool = True,
     embedded_fonts: bool = True,
+    wechat_mode: bool = False,
 ) -> Path:
     blocks, document_title = read_input(input_path)
     blocks = list(blocks)
@@ -636,14 +652,19 @@ def convert(
     canonical = canonical_theme(theme_key)
     output = render_html(
         blocks, final_title, canonical, subtitle, author, qr_data,
-        preview_fonts, font_base, embedded_fonts,
+        preview_fonts, font_base, embedded_fonts, wechat_mode,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(output, encoding="utf-8")
     if validate:
         from validate_html import validate_html
 
-        errors = validate_html(output, theme=canonical, allow_preview=preview_fonts or embedded_fonts)
+        errors = validate_html(
+            output,
+            theme=canonical,
+            allow_preview=preview_fonts or embedded_fonts,
+            wechat_mode=wechat_mode,
+        )
         if errors:
             output_path.unlink(missing_ok=True)
             details = "\n".join(f"- {error}" for error in errors)
@@ -706,6 +727,7 @@ def main(argv: list[str] | None = None) -> int:
             font_base or "assets/fonts",
             not args.no_validate,
             not args.wechat and not args.preview_fonts,
+            args.wechat,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

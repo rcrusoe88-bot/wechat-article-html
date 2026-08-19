@@ -70,7 +70,12 @@ class AuditParser(HTMLParser):
         self.comments.append(data.strip())
 
 
-def validate_html(document: str, theme: str | None = None, allow_preview: bool = False) -> list[str]:
+def validate_html(
+    document: str,
+    theme: str | None = None,
+    allow_preview: bool = False,
+    wechat_mode: bool = False,
+) -> list[str]:
     errors: list[str] = []
     parser = AuditParser()
     try:
@@ -108,10 +113,16 @@ def validate_html(document: str, theme: str | None = None, allow_preview: bool =
     body_style = body_attrs.get("style", "")
     if "max-width:677px" not in body_style.replace(" ", ""):
         errors.append("body must use max-width: 677px")
-    if "XuanZongTi" not in body_style:
-        errors.append("approved XuanZongTi body font stack is missing")
-    if "Caveat" not in document:
-        errors.append("approved Caveat label font stack is missing")
+    if wechat_mode:
+        if re.search(r"font-family\s*:", document, re.IGNORECASE):
+            errors.append("WeChat output must not declare font-family")
+        if "Caveat" in document or "XuanZongTi" in document:
+            errors.append("WeChat output must not reference custom fonts")
+    else:
+        if "XuanZongTi" not in body_style:
+            errors.append("approved XuanZongTi body font stack is missing")
+        if "Caveat" not in document:
+            errors.append("approved Caveat label font stack is missing")
 
     for tag, attrs in tags:
         if tag == "img":
@@ -160,9 +171,10 @@ def main() -> int:
     parser.add_argument("html_file", type=Path)
     parser.add_argument("--theme", choices=sorted([*THEMES, *ALIASES]))
     parser.add_argument("--allow-preview", action="store_true")
+    parser.add_argument("--wechat", action="store_true", help="validate native-font WeChat output")
     args = parser.parse_args()
     document = args.html_file.read_text(encoding="utf-8")
-    errors = validate_html(document, args.theme, args.allow_preview)
+    errors = validate_html(document, args.theme, args.allow_preview, args.wechat)
     if errors:
         print("Validation failed:")
         for error in errors:

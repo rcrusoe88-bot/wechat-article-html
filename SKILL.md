@@ -29,6 +29,12 @@ description: 将 Word、Markdown 或纯文本转换为嵌入 Caveat Bold 和玄�
    python scripts/validate_html.py OUTPUT.html --theme THEME
    ```
 
+   微信公众号版改用：
+
+   ```powershell
+   python scripts/validate_html.py OUTPUT.wechat.html --theme THEME --wechat
+   ```
+
 5. 按 [质量标准](references/quality.md) 检查内容节奏、移动端宽度、表格、图片、标题层级和文末模块。验证失败不得交付。
 
 ## 主题与兼容性
@@ -38,7 +44,7 @@ description: 将 Word、Markdown 或纯文本转换为嵌入 Caveat Bold 和玄�
 ## 不可破坏的约束
 
 - 除非用户明确指定微信后台粘贴，禁止使用 `--wechat`、禁止产出 `.wechat.html`；默认产出 `.html` 必须含 `data-embedded-fonts="true"` 和两个 `data:font/woff2;base64,` URI。
-- `--wechat` 输出只能使用元素自身的 `style` 属性；禁止 `<style>`、外部样式表和脚本。
+- `--wechat` 输出只能使用元素自身的 `style` 属性；禁止 `<style>`、外部样式表、脚本和任何 `font-family`。不写 `PingFang SC`、微软雅黑或其他猜测性字体栈，直接使用微信读者端默认字体。
 - 所有正文图片与二维码必须是 `data:image/...;base64,...`。缺少二维码时使用注释占位，不伪造路径。
 - 禁止 `<thead>`、`<tbody>` 和 `<tr style="...">`；表格样式写在 `<th>`、`<td>` 上。
 - 保留 3 条“往期精选”占位和一个关注/二维码模块。
@@ -49,7 +55,7 @@ description: 将 Word、Markdown 或纯文本转换为嵌入 Caveat Bold 和玄�
 
 主题使用用户提供的 `XuanZongTi`（玄宗体）作为中文主字体，`Caveat Bold` 作为英文、数字和英文装饰标签字体。内联字体栈固定为 `Caveat -> XuanZongTi`：Caveat 不含中文字形，因此中文会自动回退至玄宗体。两款字体位于 `assets/fonts/`。
 
-默认输出以内嵌 `data:font/woff2` 加载两款字体，不依赖安装目录、网络或用户电脑字体。转换器只保留文章实际使用的字形，避免嵌入完整的 39 MB 中文字体。`--wechat` 必定会放弃这两款字体，仅用于明确的微信后台粘贴场景；不能把它交付为带字体的浏览器 HTML。`--preview-fonts` 是兼容旧流程的本地路径预览模式。
+默认输出以内嵌 `data:font/woff2` 加载两款字体，不依赖安装目录、网络或用户电脑字体。转换器只保留文章实际使用的字形，避免嵌入完整的 39 MB 中文字体。`--wechat` 必定会放弃这两款字体并删除全部 `font-family` 指令，仅用于明确的微信后台粘贴场景；不能把它交付为带字体的浏览器 HTML。`--preview-fonts` 是兼容旧流程的本地路径预览模式。
 
 ## 输出位置
 
