@@ -22,7 +22,8 @@ def main() -> int:
     title = blocks[0].text
     manifest = []
     for key, theme in THEMES.items():
-        publish = render_html(blocks, title, key, subtitle=theme.description)
+        # Showcase HTML must exercise the same portable-font path as the CLI.
+        publish = render_html(blocks, title, key, subtitle=theme.description, embedded_fonts=True)
         preview = render_html(
             blocks,
             title,
@@ -31,7 +32,7 @@ def main() -> int:
             preview_fonts=True,
             font_base="../../assets/fonts",
         )
-        publish_errors = validate_html(publish, key)
+        publish_errors = validate_html(publish, key, allow_preview=True)
         preview_errors = validate_html(preview, key, allow_preview=True)
         if publish_errors or preview_errors:
             raise RuntimeError(f"{key}: publish={publish_errors}; preview={preview_errors}")

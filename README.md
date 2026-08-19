@@ -33,7 +33,7 @@ python scripts/convert.py article.md --theme classic --output article.preview.ht
 
 ## 主题展示
 
-下面的展示图使用 `Caveat Bold` 与 `XuanZongTi`（玄宗体）本地字体预览版生成；点击“查看 HTML”可以查看对应的发布版 HTML。发布版不含 `<style>`、脚本、外链图片或网络字体，适合复制到微信公众号编辑器。
+下面的展示图使用 `Caveat Bold` 与 `XuanZongTi`（玄宗体）生成。点击“查看 HTML”会打开与默认 CLI 完全一致的可移植版：它嵌入两款字体的 WOFF2 字集，无网络依赖。上传微信公众号时，请使用 CLI 的 `--wechat` 模式生成严格全内联版。
 
 <table>
 <tr>

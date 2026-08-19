@@ -1,6 +1,6 @@
 # anything-to-html 主题展示
 
-源文档：`sample.md`。预览版使用 `Caveat Bold` 与 `XuanZongTi`（玄宗体）；共生成 10 个主题。发布版 HTML 不含 `<style>`、外链图片或脚本。
+源文档：`sample.md`。发布版嵌入 `Caveat Bold` 与 `XuanZongTi`（玄宗体）的 WOFF2 字集；预览版从本地字体目录加载。共生成 10 个主题，不含外链图片或脚本。
 
 | 主题 | 发布版 | 本地字体预览 |
 |---|---|---|

@@ -38,7 +38,8 @@ def main() -> int:
         "themes": [],
     }
     for key, theme in THEMES.items():
-        publish = render_html(remaining, title, key, subtitle=subtitle)
+        # Keep committed examples aligned with the default CLI output.
+        publish = render_html(remaining, title, key, subtitle=subtitle, embedded_fonts=True)
         preview = render_html(
             remaining,
             title,
@@ -47,7 +48,7 @@ def main() -> int:
             preview_fonts=True,
             font_base="../../assets/fonts",
         )
-        publish_errors = validate_html(publish, key)
+        publish_errors = validate_html(publish, key, allow_preview=True)
         preview_errors = validate_html(preview, key, allow_preview=True)
         if publish_errors or preview_errors:
             raise RuntimeError(f"{key}: publish={publish_errors}; preview={preview_errors}")
@@ -71,7 +72,7 @@ def main() -> int:
     readme_lines = [
         "# anything-to-html 主题展示",
         "",
-        f"源文档：`{source.name}`。预览版使用 `Caveat Bold` 与 `XuanZongTi`（玄宗体）；共生成 {len(THEMES)} 个主题。发布版 HTML 不含 `<style>`、外链图片或脚本。",
+        f"源文档：`{source.name}`。发布版嵌入 `Caveat Bold` 与 `XuanZongTi`（玄宗体）的 WOFF2 字集；预览版从本地字体目录加载。共生成 {len(THEMES)} 个主题，不含外链图片或脚本。",
         "",
         "| 主题 | 发布版 | 本地字体预览 |",
         "|---|---|---|",

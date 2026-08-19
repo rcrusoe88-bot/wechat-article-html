@@ -17,80 +17,80 @@
       "name": "经典简约",
       "publish": "classic.html",
       "preview": "classic.preview.html",
-      "bytes": 8863,
-      "sha256": "4b92e21b619e297c0e23065fdec32bbb8375370f82a1fb4b96762d73ae1790f9"
+      "bytes": 769072,
+      "sha256": "47c0b8140ef5fc56001de0905424a1d70a33a0c89305f14e7f78bfbf091d3266"
     },
     {
       "key": "magazine",
       "name": "杂志精品",
       "publish": "magazine.html",
       "preview": "magazine.preview.html",
-      "bytes": 9959,
-      "sha256": "c952ca26dc5b61ac41deeac00893ab75c6576ef264866e919fbc6c0a0f0deac0"
+      "bytes": 770168,
+      "sha256": "bf00a8cbd4d866ee43b8ef711e9174c878c0ca887173538f9112ecf6276abc6a"
     },
     {
       "key": "fresh",
       "name": "清新文艺",
       "publish": "fresh.html",
       "preview": "fresh.preview.html",
-      "bytes": 9451,
-      "sha256": "ddaf7302e9f2a51f507e56e0e152d3f996e76c7ad17944f5bb92cef08b002123"
+      "bytes": 769660,
+      "sha256": "4413e90b3864473062e51c5b0a5bf6696311625e05783be2302738a4c2e48aed"
     },
     {
       "key": "vibrant",
       "name": "活力橙黄",
       "publish": "vibrant.html",
       "preview": "vibrant.preview.html",
-      "bytes": 9541,
-      "sha256": "8a08ba1ed13c95213b58fd5e03dd55509d2edc74fbe74e7fe6cf77733b9d3148"
+      "bytes": 769750,
+      "sha256": "1427ddeb84ede8e5a393727d4b1330b6a888435e3d356798d5bf3d96b7609c18"
     },
     {
       "key": "swiss",
       "name": "瑞士网格",
       "publish": "swiss.html",
       "preview": "swiss.preview.html",
-      "bytes": 9537,
-      "sha256": "4411e70ef1e93783574c612c8d568a1218181e1ae5e4c12ffaf168a70bd0f7d3"
+      "bytes": 769746,
+      "sha256": "01c150fe20fa7b5ffe35d8d92880d293286256a94f21eeb0a552f8e4107f2af0"
     },
     {
       "key": "minimal",
       "name": "极简学术",
       "publish": "minimal.html",
       "preview": "minimal.preview.html",
-      "bytes": 9264,
-      "sha256": "ba35b0617d9fe06fafab8e72feaea1439ee8047e822f0010f158f352be45ca41"
+      "bytes": 769473,
+      "sha256": "1a27a3ef5025aee95578e542ec69733d6207627ced6c7d4c9e401ca7a098ca27"
     },
     {
       "key": "chinese",
       "name": "中式国风",
       "publish": "chinese.html",
       "preview": "chinese.preview.html",
-      "bytes": 9246,
-      "sha256": "3edf5b9b99870feac34c5ad2c999eeed428e31a64c29e3cb0e369ad509ab3e00"
+      "bytes": 769455,
+      "sha256": "5d0658a8cb95261d44f3f3244be1fd1638748bb251da1a90b8f89484b2dba612"
     },
     {
       "key": "narrative",
       "name": "叙事编辑",
       "publish": "narrative.html",
       "preview": "narrative.preview.html",
-      "bytes": 9450,
-      "sha256": "163003e660f7da9989ff7fe91271bc1f4eb510eecd52f43075f5f40ef57c5311"
+      "bytes": 769659,
+      "sha256": "e3f8cf0933187e02f22381d762827ee06bcbdeaf6ede42a0ebac0e2a9000bc72"
     },
     {
       "key": "academic-blue",
       "name": "学术深蓝",
       "publish": "academic-blue.html",
       "preview": "academic-blue.preview.html",
-      "bytes": 9275,
-      "sha256": "b5d8cfe5818ba6008d10e9519c9210094dd31dd239a114929ed89f2955f4fcf5"
+      "bytes": 769484,
+      "sha256": "b2360ac9395bc380470903af5d49fe197d7d0caf1b101e612f3d56b7f7cabf9d"
     },
     {
       "key": "cell",
       "name": "Cell 编辑风",
       "publish": "cell.html",
       "preview": "cell.preview.html",
-      "bytes": 9423,
-      "sha256": "6f8aaca68299749d79ca0796230c3a138a7ebcdcda18b6ecbfb1f83d87765abb"
+      "bytes": 769632,
+      "sha256": "ebd10fb21ad6ea87175d079f34fc145e097cf99bab0e670acdf55d67985039ae"
     }
   ]
 }

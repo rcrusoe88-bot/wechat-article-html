@@ -40,6 +40,10 @@ class SkillPackageTests(unittest.TestCase):
         self.assertNotIn("PreTesto", combined)
         self.assertNotIn("cdn.jsdelivr.net", combined)
 
+    def test_example_builders_use_portable_font_output(self) -> None:
+        for script in (ROOT / "scripts" / "build_gallery.py", ROOT / "scripts" / "build_showcase.py"):
+            self.assertIn("embedded_fonts=True", script.read_text(encoding="utf-8"), script.name)
+
 
 if __name__ == "__main__":
     unittest.main()
