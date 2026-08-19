@@ -32,4 +32,4 @@
 
 ## 发布前检查
 
-默认输出必须带 `data-embedded-fonts="true"`，包含两个 WOFF2 data URI，且不依赖本地路径。交付公众号版本时使用 `--wechat` 重新生成，并运行严格验证。
+默认输出必须带 `data-embedded-fonts="true"`，包含两个 WOFF2 data URI，且不依赖本地路径。除非用户明确要粘贴到微信公众号后台，不得生成 `--wechat` 版本；该版本不包含嵌入字体。

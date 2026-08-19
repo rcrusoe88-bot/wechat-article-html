@@ -44,6 +44,13 @@ class SkillPackageTests(unittest.TestCase):
         for script in (ROOT / "scripts" / "build_gallery.py", ROOT / "scripts" / "build_showcase.py"):
             self.assertIn("embedded_fonts=True", script.read_text(encoding="utf-8"), script.name)
 
+    def test_default_skill_contract_requires_embedded_fonts(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        prompt = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
+        self.assertIn('data-embedded-fonts="true"', skill)
+        self.assertIn("除非用户明确指定微信后台粘贴", skill)
+        self.assertIn("不要使用 --wechat", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
