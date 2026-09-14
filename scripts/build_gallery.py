@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build publish and local-font preview samples for every theme."""
+"""Build the WeChat-native sample for every theme."""
 
 from __future__ import annotations
 
@@ -22,34 +22,23 @@ def main() -> int:
     title = blocks[0].text
     manifest = []
     for key, theme in THEMES.items():
-        # Showcase HTML must exercise the same portable-font path as the CLI.
-        publish = render_html(blocks, title, key, subtitle=theme.description, embedded_fonts=True)
-        preview = render_html(
-            blocks,
-            title,
-            key,
-            subtitle=theme.description,
-            preview_fonts=True,
-            font_base="../../assets/fonts",
-        )
-        publish_errors = validate_html(publish, key, allow_preview=True)
-        preview_errors = validate_html(preview, key, allow_preview=True)
-        if publish_errors or preview_errors:
-            raise RuntimeError(f"{key}: publish={publish_errors}; preview={preview_errors}")
-        publish_path = OUTPUT / f"{key}.html"
-        preview_path = OUTPUT / f"{key}.preview.html"
-        publish_bytes = publish.encode("utf-8")
-        preview_bytes = preview.encode("utf-8")
-        publish_path.write_bytes(publish_bytes)
-        preview_path.write_bytes(preview_bytes)
+        # Generated examples must match the only public CLI output.
+        wechat = render_html(blocks, title, key, subtitle=theme.description, wechat_mode=True)
+        wechat_errors = validate_html(wechat, key)
+        if wechat_errors:
+            raise RuntimeError(f"{key}: wechat={wechat_errors}")
+        wechat_path = OUTPUT / f"{key}.wechat.html"
+        wechat_bytes = wechat.encode("utf-8")
+        for stale_name in (f"{key}.html", f"{key}.preview.html"):
+            (OUTPUT / stale_name).unlink(missing_ok=True)
+        wechat_path.write_bytes(wechat_bytes)
         manifest.append(
             {
                 "theme": key,
                 "name": theme.name,
-                "publish": publish_path.name,
-                "preview": preview_path.name,
-                "sha256": hashlib.sha256(publish_bytes).hexdigest(),
-                "bytes": len(publish_bytes),
+                "wechat": wechat_path.name,
+                "sha256": hashlib.sha256(wechat_bytes).hexdigest(),
+                "bytes": len(wechat_bytes),
             }
         )
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

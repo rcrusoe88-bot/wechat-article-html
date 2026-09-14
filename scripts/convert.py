@@ -8,7 +8,6 @@ import base64
 import html
 import io
 import mimetypes
-import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -19,6 +18,8 @@ from typing import Iterable
 BODY_FONT = "'Caveat', 'XuanZongTi', '玄宗体', 'FangSong', 'STFangsong', 'SimSun', serif"
 LABEL_FONT = "'Caveat', 'Segoe Print', 'Bradley Hand', cursive"
 FONT_DIR = Path(__file__).resolve().parents[1] / "assets" / "fonts"
+DEFAULT_QR_PATH = Path(__file__).resolve().parents[1] / "assets" / "images" / "qr-placeholder.png"
+LAYOUT_VERSION = "1.0"
 
 
 @dataclass(frozen=True)
@@ -37,25 +38,10 @@ class Theme:
 
 
 THEMES = {
-    "classic": Theme("classic", "经典简约", "#087f5b", "#d8f3e8", "#ffffff", "#f3faf7", "#26332f", "#66736e", "#cfe3db", "classic", "专业科普与通用长文"),
-    "magazine": Theme("magazine", "杂志精品", "#7a5c3e", "#c5a46d", "#f7f3ed", "#fffdf9", "#302a25", "#766c63", "#ded2c2", "magazine", "深度报道与人物长文"),
-    "fresh": Theme("fresh", "清新文艺", "#356f73", "#f2b8a2", "#f7fbfa", "#ffffff", "#2e4142", "#718081", "#d7e8e5", "fresh", "轻科普与生活方式"),
-    "vibrant": Theme("vibrant", "活力橙黄", "#e8590c", "#f2b705", "#fff8ed", "#ffffff", "#3b3027", "#7b6b5d", "#f2d7b7", "vibrant", "行业动态与快节奏解读"),
-    "swiss": Theme("swiss", "瑞士网格", "#c92a2a", "#111111", "#ffffff", "#f5f5f3", "#161616", "#686868", "#111111", "swiss", "数据报告与理性分析"),
-    "minimal": Theme("minimal", "极简学术", "#111111", "#8c8c8c", "#ffffff", "#fafafa", "#202020", "#777777", "#d9d9d9", "minimal", "论文解读与严肃综述"),
-    "chinese": Theme("chinese", "中式国风", "#8c2f39", "#b68d40", "#fbf6ea", "#fffdf7", "#352b25", "#776b60", "#d8c7a5", "chinese", "传统文化与人文内容"),
-    "narrative": Theme("narrative", "叙事编辑", "#0f766e", "#ef6351", "#f7f3ed", "#fffdf8", "#263534", "#6c7977", "#cfded9", "narrative", "人物故事与行业观察"),
-    "academic-blue": Theme("academic-blue", "学术深蓝", "#173b63", "#2d8c9e", "#f5f8fb", "#ffffff", "#263746", "#667786", "#cad8e5", "academic", "机制讲解与技术综述"),
-    "cell": Theme("cell", "Cell 编辑风", "#12324a", "#b7d33d", "#edf3f5", "#ffffff", "#243540", "#687984", "#c8d7dd", "cell", "临床数据与产品管线"),
+    "kami": Theme("kami", "Kami 纸感", "#1b365d", "#504e49", "#f5f4ed", "#faf9f5", "#141413", "#6b6a64", "#e8e6dc", "kami", "研究报告、深度长文与知识归档"),
+    "esther": Theme("esther", "Esther 组件", "#2b7fd8", "#f4d758", "#fefcf6", "#ffffff", "#1a1a2e", "#4a4a5a", "#e8e2d8", "esther", "设计、产品与轻松解释"),
+    "punk": Theme("punk", "Punk 微排", "#1554c0", "#ffd400", "#ffffff", "#eaf2ff", "#171717", "#5f6673", "#dce6f5", "punk", "工具教程、清单与实操步骤"),
 }
-
-ALIASES = {
-    "orange": "vibrant",
-    "nature": "minimal",
-    "blue": "academic-blue",
-    "morandi": "fresh",
-}
-
 
 @dataclass
 class Block:
@@ -71,9 +57,9 @@ class Block:
 
 
 def canonical_theme(value: str) -> str:
-    key = ALIASES.get(value.lower(), value.lower())
+    key = value.lower()
     if key not in THEMES:
-        choices = ", ".join(sorted([*THEMES, *ALIASES]))
+        choices = ", ".join(sorted(THEMES))
         raise ValueError(f"unknown theme {value!r}; choose one of: {choices}")
     return key
 
@@ -142,6 +128,12 @@ def image_to_data_uri(path_value: str, base_dir: Path) -> str:
         raise ValueError(f"unsupported image type: {image_path}")
     encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
     return f"data:{mime};base64,{encoded}"
+
+
+def default_qr_data_uri() -> str:
+    if not DEFAULT_QR_PATH.is_file():
+        raise RuntimeError(f"default QR placeholder is missing: {DEFAULT_QR_PATH}")
+    return "data:image/png;base64," + base64.b64encode(DEFAULT_QR_PATH.read_bytes()).decode("ascii")
 
 
 SPECIAL_LINE_RE = re.compile(
@@ -426,81 +418,92 @@ def _header(theme: Theme, title: str, subtitle: str, author: str) -> str:
     if safe_author:
         meta += f'<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:{theme.muted};">文 / {safe_author}</p>'
 
-    if theme.variant == "magazine":
-        return f'<header style="padding:0 28px 34px;text-align:center;border-top:5px solid {theme.primary};"><p style="margin:28px 0 16px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">FEATURE</p><h1 style="margin:0;font-size:26px;line-height:1.5;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="width:72px;height:1px;background:{theme.secondary};margin:24px auto 0;"></div></header>'
-    if theme.variant == "vibrant":
-        return f'<header style="padding:36px 24px 40px;background:linear-gradient(135deg,{theme.primary}, {theme.secondary});text-align:left;"><p style="margin:0 0 14px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:#5a2c0a;">TREND / NOW</p><h1 style="margin:0;font-size:26px;line-height:1.45;font-weight:800;color:#2d2118;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#5a2c0a")}</header>'
-    if theme.variant == "swiss":
-        return f'<header style="padding:28px 24px 30px;border-top:10px solid {theme.primary};border-bottom:3px solid {theme.secondary};"><p style="margin:0 0 20px;font:700 17px {LABEL_FONT};color:{theme.primary};">REPORT / 01</p><h1 style="margin:0;max-width:590px;font-size:34px;line-height:1.12;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
-    if theme.variant == "minimal":
-        return f'<header style="padding:54px 28px 36px;border-bottom:1px solid {theme.border};"><p style="margin:0 0 28px;font:700 16px {LABEL_FONT};letter-spacing:3px;color:{theme.muted};">ESSAY  /  01</p><h1 style="margin:0;font-size:30px;line-height:1.45;font-weight:500;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
-    if theme.variant == "chinese":
-        return f'<header style="margin:18px;padding:30px 22px;text-align:center;border:3px double {theme.border};background:{theme.surface};"><p style="display:inline-block;margin:0 0 18px;padding:5px 8px;border:1px solid {theme.primary};font-size:14px;line-height:1;color:{theme.primary};">文</p><h1 style="margin:0;font-size:28px;line-height:1.6;font-weight:600;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
-    if theme.variant == "narrative":
-        return f'<header style="padding:38px 26px 32px;background:{theme.surface};border-top:7px solid {theme.primary};"><p style="margin:0 0 18px;font:700 17px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">A TRUE STORY</p><h1 style="margin:0;font-size:30px;line-height:1.35;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="display:flex;gap:7px;margin-top:26px;"><span style="display:block;width:42px;height:4px;background:{theme.primary};"></span><span style="display:block;width:14px;height:4px;background:{theme.secondary};"></span></div></header>'
-    if theme.variant == "academic":
-        return f'<header style="padding:34px 26px 36px;background:{theme.primary};border-top:6px solid {theme.secondary};"><p style="margin:0 0 15px;font:700 15px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">REVIEW ARTICLE</p><h1 style="margin:0;font-size:27px;line-height:1.45;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
-    if theme.variant == "cell":
-        return f'<header style="padding:38px 26px 42px;background:{theme.primary};"><div style="width:54px;height:7px;background:{theme.secondary};margin-bottom:24px;"></div><p style="margin:0 0 14px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">CELL / INSIGHT</p><h1 style="margin:0;font-size:29px;line-height:1.4;font-weight:700;color:#ffffff;overflow-wrap:anywhere;">{safe_title}</h1>{meta.replace(theme.muted, "#d6e4ec")}</header>'
-    if theme.variant == "fresh":
-        return f'<header style="padding:34px 26px 36px;background:{theme.surface};border-bottom:1px solid {theme.border};"><div style="display:flex;gap:8px;margin-bottom:22px;"><span style="width:13px;height:13px;border-radius:50%;background:{theme.primary};"></span><span style="width:13px;height:13px;border-radius:50%;background:{theme.secondary};"></span></div><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
-    return f'<header style="padding:34px 26px 30px;border-top:5px solid {theme.primary};"><p style="margin:0 0 16px;font:700 15px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">WECHAT ARTICLE</p><h1 style="margin:0;font-size:28px;line-height:1.45;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}</header>'
+    if theme.variant == "kami":
+        return f'<header style="padding:46px 28px 34px;background:{theme.surface};border-top:2px solid {theme.primary};border-bottom:1px solid {theme.border};"><p style="margin:0 0 28px;font:700 12px {LABEL_FONT};color:{theme.primary};">KAMI / NOTE</p><h1 style="margin:0;font-size:30px;line-height:1.42;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="width:58px;height:2px;margin-top:26px;background:{theme.primary};"></div></header>'
+    if theme.variant == "esther":
+        return f'<header style="padding:38px 24px 34px;background:{theme.surface};border-bottom:1px solid {theme.border};"><div style="display:flex;gap:7px;margin-bottom:24px;"><span style="display:block;width:30px;height:7px;border-radius:999px;background:{theme.primary};"></span><span style="display:block;width:13px;height:7px;border-radius:999px;background:{theme.secondary};"></span><span style="display:block;width:13px;height:7px;border-radius:999px;background:#e84a5f;"></span></div><p style="margin:0 0 12px;font:700 13px {LABEL_FONT};color:{theme.primary};">ESTHER / COMPONENTS</p><h1 style="margin:0;font-size:30px;line-height:1.38;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="display:inline-block;margin-top:26px;padding:8px 12px;border-radius:999px;background:#faf6eb;font:700 12px {LABEL_FONT};color:{theme.primary};">IDEA NOTE / 01</div></header>'
+    if theme.variant == "punk":
+        return f'<header style="padding:0 22px 30px;background:#ffffff;border-top:9px solid {theme.primary};"><div style="display:flex;align-items:center;gap:9px;padding:22px 0 18px;"><span style="display:inline-block;padding:4px 9px;border-radius:999px;background:{theme.secondary};font:700 12px {LABEL_FONT};color:{theme.primary};">PUNK 微排</span><span style="font:700 11px {LABEL_FONT};color:{theme.muted};">PRACTICAL LAYOUT</span></div><h1 style="margin:0;font-size:29px;line-height:1.42;font-weight:800;color:{theme.primary};overflow-wrap:anywhere;">{safe_title}</h1>{meta}<div style="display:flex;align-items:center;gap:4px;margin-top:26px;"><span style="display:block;width:72px;height:5px;background:{theme.secondary};"></span><span style="display:block;width:14px;height:5px;background:{theme.primary};"></span><span style="display:block;flex:1;height:1px;background:{theme.border};"></span></div></header>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def _heading(theme: Theme, text: str, level: int, chapter: int) -> str:
     content = inline_markup(text, theme)
     if level == 3:
-        return f'<h3 style="margin:28px 0 12px;font-size:18px;line-height:1.6;font-weight:700;color:{theme.text};">{content}</h3>'
+        if theme.variant == "kami":
+            return f'<h3 style="margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid {theme.border};font-size:17px;line-height:1.65;font-weight:700;color:{theme.secondary};overflow-wrap:anywhere;">{content}</h3>'
+        if theme.variant == "esther":
+            return f'<h3 style="margin:30px 0 14px;padding:10px 13px;border-left:4px solid #e84a5f;border-radius:0 9px 9px 0;background:{theme.surface};font-size:17px;line-height:1.65;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{content}</h3>'
+        if theme.variant == "punk":
+            return f'<h3 style="margin:30px 0 12px;padding:7px 12px;border-left:7px solid {theme.secondary};background:#f7faff;font-size:18px;line-height:1.6;font-weight:700;color:{theme.primary};overflow-wrap:anywhere;">{content}</h3>'
+        raise ValueError(f"unsupported theme variant: {theme.variant}")
     number = f"{chapter:02d}"
-    if theme.variant == "magazine":
-        return f'<section style="margin:46px 0 22px;text-align:center;"><p style="margin:0 0 8px;font:700 15px {LABEL_FONT};letter-spacing:3px;color:{theme.secondary};">CHAPTER {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:600;color:{theme.text};">{content}</h2></section>'
-    if theme.variant == "swiss":
-        return f'<section style="display:flex;align-items:flex-start;gap:16px;margin:44px 0 20px;padding-top:12px;border-top:3px solid {theme.secondary};"><span style="display:block;min-width:52px;font:700 24px {LABEL_FONT};color:{theme.primary};">{number}</span><h2 style="min-width:0;margin:0;font-size:24px;line-height:1.3;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{content}</h2></section>'
-    if theme.variant == "minimal":
-        return f'<section style="margin:52px 0 22px;"><p style="margin:0 0 10px;font:700 17px {LABEL_FONT};color:{theme.muted};">{number}</p><h2 style="margin:0;padding-bottom:12px;border-bottom:1px solid {theme.border};font-size:23px;line-height:1.5;font-weight:500;color:{theme.text};">{content}</h2></section>'
-    if theme.variant == "chinese":
-        return f'<section style="margin:44px 0 22px;text-align:center;"><span style="display:inline-block;margin-bottom:10px;padding:4px 10px;border:1px solid {theme.secondary};font-size:13px;color:{theme.primary};">第 {number} 章</span><h2 style="margin:0;font-size:22px;line-height:1.6;font-weight:600;color:{theme.text};">{content}</h2></section>'
-    if theme.variant == "narrative":
-        return f'<section style="margin:48px 0 22px;padding-left:18px;border-left:5px solid {theme.secondary};"><p style="margin:0 0 6px;font:700 16px {LABEL_FONT};color:{theme.primary};">SCENE {number}</p><h2 style="margin:0;font-size:25px;line-height:1.35;font-weight:700;color:{theme.text};">{content}</h2></section>'
-    if theme.variant == "academic":
-        return f'<section style="margin:42px 0 20px;padding:14px 18px;background:{theme.primary};"><p style="margin:0 0 5px;font:700 14px {LABEL_FONT};letter-spacing:2px;color:#b9dce2;">SECTION {number}</p><h2 style="margin:0;font-size:21px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
-    if theme.variant == "cell":
-        return f'<section style="margin:42px 0 20px;padding:18px 20px;background:{theme.primary};border-left:8px solid {theme.secondary};"><p style="margin:0 0 6px;font:700 14px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">SECTION {number}</p><h2 style="margin:0;font-size:22px;line-height:1.45;font-weight:700;color:#ffffff;">{content}</h2></section>'
-    if theme.variant == "vibrant":
-        return f'<section style="display:flex;align-items:flex-start;gap:12px;margin:38px 0 18px;"><span style="display:inline-block;min-width:38px;padding:6px 5px;border-radius:4px;background:{theme.primary};font:700 16px {LABEL_FONT};text-align:center;color:#ffffff;">{number}</span><h2 style="margin:2px 0 0;font-size:22px;line-height:1.45;font-weight:800;color:{theme.text};">{content}</h2></section>'
-    if theme.variant == "fresh":
-        return f'<section style="margin:38px 0 18px;padding:14px 18px;background:{theme.surface};border-left:4px solid {theme.primary};border-radius:0 6px 6px 0;"><p style="margin:0 0 4px;font:700 14px {LABEL_FONT};color:{theme.secondary};">NOTE {number}</p><h2 style="margin:0;font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2></section>'
-    return f'<h2 style="margin:40px 0 18px;padding:0 0 8px 14px;border-left:4px solid {theme.primary};border-bottom:1px solid {theme.border};font-size:22px;line-height:1.5;font-weight:700;color:{theme.text};">{content}</h2>'
+    if theme.variant == "kami":
+        return f'<section style="margin:48px 0 22px;"><p style="margin:0 0 9px;font:700 13px {LABEL_FONT};color:{theme.primary};">CHAPTER {number}</p><h2 style="margin:0;padding-bottom:14px;border-bottom:1px solid {theme.border};font-size:23px;line-height:1.5;font-weight:700;color:{theme.text};overflow-wrap:anywhere;">{content}</h2></section>'
+    if theme.variant == "esther":
+        return f'<section style="margin:46px 0 20px;padding:22px 20px;background:{theme.surface};border:1px solid {theme.border};border-radius:14px;"><div style="display:flex;align-items:flex-start;gap:14px;"><span style="display:block;min-width:48px;font:700 30px {LABEL_FONT};line-height:1;color:#dcebfa;">{number}</span><div style="min-width:0;padding-top:1px;"><p style="margin:0 0 5px;font:700 11px {LABEL_FONT};color:#e84a5f;">COMPONENT</p><h2 style="margin:0;font-size:23px;line-height:1.42;font-weight:800;color:{theme.text};overflow-wrap:anywhere;">{content}</h2></div></div><div style="width:64px;height:5px;margin-top:16px;border-radius:999px;background:{theme.secondary};"></div></section>'
+    if theme.variant == "punk":
+        return f'<section style="margin:46px 0 20px;text-align:center;"><p style="margin:0 0 7px;font:700 12px {LABEL_FONT};color:{theme.primary};">PART {number}</p><h2 style="display:inline-block;margin:0;padding-bottom:8px;border-bottom:5px solid {theme.secondary};font-size:23px;line-height:1.45;font-weight:800;color:{theme.primary};overflow-wrap:anywhere;">{content}</h2><div style="display:flex;justify-content:center;gap:4px;margin-top:12px;"><span style="display:block;width:70px;height:3px;background:{theme.primary};"></span><span style="display:block;width:12px;height:3px;background:{theme.secondary};"></span></div></section>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
-def _paragraph(theme: Theme, text: str, drop_cap: bool = False) -> str:
+def _paragraph(theme: Theme, text: str) -> str:
     content = inline_markup(text, theme)
-    if drop_cap and content:
-        first = content[0]
-        rest = content[1:]
-        content = f'<span style="float:left;margin:5px 9px 0 0;font:700 48px/0.8 {LABEL_FONT};color:{theme.primary};">{first}</span>{rest}'
-    return f'<p style="margin:0 0 20px;font-size:16px;line-height:1.95;text-align:justify;color:{theme.text};overflow-wrap:anywhere;">{content}</p>'
+    if theme.variant == "kami":
+        return f'<p style="margin:0 0 23px;font-size:16px;line-height:2;text-align:justify;color:{theme.text};overflow-wrap:anywhere;">{content}</p>'
+    if theme.variant == "esther":
+        return f'<p style="margin:0 0 20px;font-size:16px;line-height:1.95;text-align:justify;color:{theme.text};overflow-wrap:anywhere;">{content}</p>'
+    if theme.variant == "punk":
+        return f'<p style="margin:0 0 18px;font-size:16px;line-height:1.9;text-align:justify;color:#222222;overflow-wrap:anywhere;">{content}</p>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def _quote(theme: Theme, text: str) -> str:
     content = inline_markup(text, theme)
-    if theme.variant in {"magazine", "minimal"}:
-        return f'<blockquote style="margin:30px 0;padding:22px 24px;border-top:1px solid {theme.primary};border-bottom:1px solid {theme.primary};background:{theme.surface};"><p style="margin:0;font-size:17px;line-height:1.9;font-style:italic;color:{theme.text};">{content}</p></blockquote>'
-    if theme.variant in {"swiss", "cell"}:
-        return f'<blockquote style="margin:28px 0;padding:20px 22px;border-left:7px solid {theme.primary};background:{theme.surface};"><p style="margin:0;font-size:17px;line-height:1.85;font-weight:600;color:{theme.text};">{content}</p></blockquote>'
-    return f'<blockquote style="margin:28px 0;padding:20px 22px;border-left:4px solid {theme.primary};background:{theme.surface};"><p style="margin:0;font-size:17px;line-height:1.9;color:{theme.text};">{content}</p></blockquote>'
+    if theme.variant == "kami":
+        return f'<blockquote style="margin:32px 0;padding:22px 22px 20px;background:{theme.surface};border-top:2px solid {theme.primary};border-bottom:1px solid {theme.border};"><p style="margin:0 0 9px;font:700 11px {LABEL_FONT};color:{theme.primary};">TAKEAWAY</p><p style="margin:0;font-size:17px;line-height:1.9;color:{theme.text};">{content}</p></blockquote>'
+    if theme.variant == "esther":
+        return f'<blockquote style="margin:30px 0;padding:28px 24px 24px;background:{theme.surface};border:2px solid {theme.secondary};border-radius:14px;"><p style="margin:0 0 8px;font:700 12px {LABEL_FONT};color:#e84a5f;">PULL QUOTE</p><p style="margin:0;font-size:17px;line-height:1.9;font-weight:700;color:{theme.text};">{content}</p></blockquote>'
+    if theme.variant == "punk":
+        return f'<blockquote style="margin:28px 0;padding:20px 20px 20px 22px;background:{theme.surface};border-left:7px solid {theme.primary};border-radius:0 9px 9px 0;"><p style="margin:0 0 7px;font:700 11px {LABEL_FONT};color:{theme.primary};">NOTE</p><p style="margin:0;font-size:17px;line-height:1.9;color:{theme.text};">{content}</p></blockquote>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def _list(theme: Theme, block: Block) -> str:
-    if theme.variant == "magazine" and not block.ordered:
-        cards = []
+    if theme.variant == "kami":
+        items = []
         for index, item in enumerate(block.items, 1):
-            cards.append(f'<div style="margin:0 0 12px;padding:17px 18px;background:{theme.surface};border-left:3px solid {theme.secondary};"><p style="margin:0 0 5px;font:700 13px {LABEL_FONT};letter-spacing:2px;color:{theme.secondary};">POINT {index:02d}</p><p style="margin:0;font-size:16px;line-height:1.8;color:{theme.text};">{inline_markup(item, theme)}</p></div>')
-        return f'<section style="margin:24px 0;">{"".join(cards)}</section>'
-    tag = "ol" if block.ordered else "ul"
-    marker = "decimal" if block.ordered else "square" if theme.variant == "swiss" else "disc"
-    items = "".join(f'<li style="margin:0 0 10px;padding-left:4px;font-size:16px;line-height:1.85;color:{theme.primary};"><span style="color:{theme.text};">{inline_markup(item, theme)}</span></li>' for item in block.items)
-    return f'<{tag} style="margin:22px 0;padding-left:26px;list-style-type:{marker};">{items}</{tag}>'
+            if block.ordered:
+                marker = f'<span style="display:block;min-width:28px;padding-top:2px;font:700 12px {LABEL_FONT};color:{theme.primary};">{index:02d}</span>'
+            else:
+                marker = f'<span style="display:block;width:7px;height:7px;margin-top:10px;background:{theme.primary};"></span>'
+            items.append(f'<li style="display:flex;align-items:flex-start;gap:13px;margin:0;padding:8px 0;font-size:16px;line-height:1.88;color:{theme.text};">{marker}<span style="min-width:0;">{inline_markup(item, theme)}</span></li>')
+        tag = "ol" if block.ordered else "ul"
+        return f'<{tag} style="margin:24px 0;padding:0;list-style-type:none;">{"".join(items)}</{tag}>'
+    if theme.variant == "esther":
+        accents = [theme.primary, theme.secondary, "#e84a5f"]
+        items = []
+        for index, item in enumerate(block.items, 1):
+            accent = accents[(index - 1) % len(accents)]
+            if block.ordered:
+                marker_text = theme.text if accent == theme.secondary else "#ffffff"
+                marker = f'<span style="display:block;min-width:28px;height:28px;line-height:28px;border-radius:50%;background:{accent};text-align:center;font:700 13px {LABEL_FONT};color:{marker_text};">{index}</span>'
+            else:
+                marker = f'<span style="display:block;width:10px;height:10px;margin-top:8px;border-radius:50%;background:{accent};"></span>'
+            items.append(f'<li style="display:flex;align-items:flex-start;gap:12px;margin:0 0 11px;padding:15px 16px;background:{theme.surface};border:1px solid {theme.border};border-radius:12px;font-size:16px;line-height:1.82;color:{theme.text};">{marker}<span style="min-width:0;">{inline_markup(item, theme)}</span></li>')
+        tag = "ol" if block.ordered else "ul"
+        return f'<{tag} style="margin:25px 0;padding:0;list-style-type:none;">{"".join(items)}</{tag}>'
+    if theme.variant == "punk":
+        items = []
+        for index, item in enumerate(block.items, 1):
+            if block.ordered:
+                marker = f'<span style="display:block;min-width:28px;height:26px;line-height:26px;border-radius:5px;background:{theme.primary};text-align:center;font:700 13px {LABEL_FONT};color:#ffffff;">{index}</span>'
+            else:
+                marker = f'<span style="display:block;width:9px;height:9px;margin-top:8px;background:{theme.primary};"></span>'
+            items.append(f'<li style="display:flex;align-items:flex-start;gap:11px;margin:0;padding:7px 0;font-size:16px;line-height:1.82;color:{theme.text};">{marker}<span style="min-width:0;">{inline_markup(item, theme)}</span></li>')
+        tag = "ol" if block.ordered else "ul"
+        return f'<{tag} style="margin:22px 0;padding:0;list-style-type:none;">{"".join(items)}</{tag}>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def _table(theme: Theme, rows: list[list[str]]) -> str:
@@ -508,30 +511,73 @@ def _table(theme: Theme, rows: list[list[str]]) -> str:
         return ""
     width = max(len(row) for row in rows)
     normalized = [row + [""] * (width - len(row)) for row in rows]
-    header_cells = "".join(f'<th style="padding:12px 13px;border-right:1px solid {theme.border};background:{theme.primary};font-size:14px;line-height:1.5;text-align:left;color:#ffffff;">{inline_markup(cell, theme)}</th>' for cell in normalized[0])
-    body_rows = []
-    for row in normalized[1:]:
-        cells = "".join(f'<td style="padding:11px 13px;border-right:1px solid {theme.border};border-bottom:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.65;color:{theme.text};vertical-align:top;">{inline_markup(cell, theme)}</td>' for cell in row)
-        body_rows.append(f"<tr>{cells}</tr>")
-    return f'<div style="margin:26px 0;max-width:100%;overflow-x:auto;border:1px solid {theme.border};"><table style="width:100%;min-width:480px;border-collapse:collapse;table-layout:auto;"><tr>{header_cells}</tr>{"".join(body_rows)}</table></div>'
+    if theme.variant == "kami":
+        header_cells = "".join(f'<th style="padding:12px 11px;border-top:2px solid {theme.primary};border-bottom:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.5;text-align:left;color:{theme.text};vertical-align:bottom;">{inline_markup(cell, theme)}</th>' for cell in normalized[0])
+        body_rows = []
+        for row in normalized[1:]:
+            cells = "".join(f'<td style="padding:12px 11px;border-bottom:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.7;color:{theme.text};vertical-align:top;">{inline_markup(cell, theme)}</td>' for cell in row)
+            body_rows.append(f"<tr>{cells}</tr>")
+        return f'<div style="margin:30px 0;max-width:100%;overflow-x:auto;"><table style="width:100%;min-width:480px;border-collapse:collapse;table-layout:auto;"><tr>{header_cells}</tr>{"".join(body_rows)}</table></div>'
+    if theme.variant == "esther":
+        header_cells = "".join(f'<th style="padding:12px 13px;border-right:1px solid #5a9ce4;background:{theme.primary};font-size:14px;line-height:1.5;text-align:left;color:#ffffff;">{inline_markup(cell, theme)}</th>' for cell in normalized[0])
+        body_rows = []
+        for row in normalized[1:]:
+            cells = "".join(f'<td style="padding:12px 13px;border-right:1px solid {theme.border};border-bottom:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.7;color:{theme.text};vertical-align:top;">{inline_markup(cell, theme)}</td>' for cell in row)
+            body_rows.append(f"<tr>{cells}</tr>")
+        return f'<div style="margin:28px 0;max-width:100%;overflow-x:auto;border:1px solid {theme.border};border-radius:14px;background:{theme.surface};"><table style="width:100%;min-width:480px;border-collapse:collapse;table-layout:auto;"><tr>{header_cells}</tr>{"".join(body_rows)}</table></div>'
+    if theme.variant == "punk":
+        header_cells = "".join(f'<th style="padding:11px 12px;border-top:3px solid {theme.primary};border-right:1px solid {theme.border};border-bottom:2px solid {theme.secondary};background:#f7faff;font-size:14px;line-height:1.5;text-align:left;color:{theme.primary};">{inline_markup(cell, theme)}</th>' for cell in normalized[0])
+        body_rows = []
+        for row in normalized[1:]:
+            cells = "".join(f'<td style="padding:11px 12px;border-right:1px solid {theme.border};border-bottom:1px solid {theme.border};background:#ffffff;font-size:14px;line-height:1.7;color:{theme.text};vertical-align:top;">{inline_markup(cell, theme)}</td>' for cell in row)
+            body_rows.append(f"<tr>{cells}</tr>")
+        return f'<div style="margin:28px 0;max-width:100%;overflow-x:auto;border:1px solid {theme.border};"><table style="width:100%;min-width:480px;border-collapse:collapse;table-layout:auto;"><tr>{header_cells}</tr>{"".join(body_rows)}</table></div>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
+
+
+def _code(theme: Theme, block: Block) -> str:
+    code = html.escape(block.text)
+    language = html.escape(block.language or "code")
+    if theme.variant == "kami":
+        return f'<pre style="margin:30px 0;padding:20px;overflow-x:auto;border-top:1px solid {theme.primary};border-bottom:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.85;color:{theme.text};white-space:pre-wrap;word-break:break-word;"><code style="font-family:Consolas,monospace;">{code}</code></pre>'
+    if theme.variant == "esther":
+        return f'<section style="margin:30px 0;border:1px solid {theme.border};border-radius:14px;overflow:hidden;background:#1a1a2e;"><div style="padding:10px 14px;background:#2d2d3a;"><span style="display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:#ff5f56;"></span><span style="display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:#ffbd2e;"></span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27c93f;"></span><span style="float:right;font:700 11px {LABEL_FONT};color:#d7d7e2;">{language}</span></div><pre style="margin:0;padding:20px;overflow-x:auto;background:#1a1a2e;font-size:14px;line-height:1.85;color:#f4f0ff;white-space:pre-wrap;word-break:break-word;"><code style="font-family:Consolas,monospace;">{code}</code></pre></section>'
+    if theme.variant == "punk":
+        return f'<section style="margin:30px 0;border:1px solid #0a3b91;border-radius:12px;overflow:hidden;background:#0b3a91;"><div style="padding:10px 14px;background:#082c72;"><span style="display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:#ff5f56;"></span><span style="display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:#ffbd2e;"></span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27c93f;"></span><span style="float:right;font:700 11px {LABEL_FONT};color:{theme.secondary};">{language}</span></div><pre style="margin:0;padding:20px;overflow-x:auto;background:{theme.primary};font-size:14px;line-height:1.85;color:#fff3b0;white-space:pre-wrap;word-break:break-word;"><code style="font-family:Consolas,monospace;">{code}</code></pre></section>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def _image(theme: Theme, block: Block) -> str:
     caption = ""
     if block.caption:
         caption = f'<p style="margin:9px 0 0;font-size:13px;line-height:1.6;text-align:center;color:{theme.muted};">{html.escape(block.caption)}</p>'
-    return f'<figure style="margin:28px 0;"><img src="{block.data_uri}" alt="{html.escape(block.caption, quote=True)}" style="display:block;width:100%;max-width:100%;height:auto;border:1px solid {theme.border};" />{caption}</figure>'
+    if theme.variant == "kami":
+        return f'<figure style="margin:30px 0;"><img src="{block.data_uri}" alt="{html.escape(block.caption, quote=True)}" style="display:block;width:100%;max-width:100%;height:auto;padding:8px;background:{theme.surface};border-top:1px solid {theme.border};border-bottom:1px solid {theme.border};box-sizing:border-box;" />{caption}</figure>'
+    if theme.variant == "esther":
+        return f'<figure style="margin:30px 0;"><img src="{block.data_uri}" alt="{html.escape(block.caption, quote=True)}" style="display:block;width:100%;max-width:100%;height:auto;border:1px solid {theme.border};border-radius:14px;" />{caption}</figure>'
+    if theme.variant == "punk":
+        return f'<figure style="margin:28px 0;"><img src="{block.data_uri}" alt="{html.escape(block.caption, quote=True)}" style="display:block;width:100%;max-width:100%;height:auto;border:2px solid {theme.primary};border-bottom:6px solid {theme.secondary};box-sizing:border-box;" />{caption}</figure>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def _footer(theme: Theme, qr_data_uri: str) -> str:
-    history = []
-    for index in range(1, 4):
-        history.append(f'<div data-history-item="{index}" style="margin:0 0 10px;padding:14px 16px;background:{theme.surface};border-left:3px solid {theme.primary};"><p style="margin:0;font-size:15px;line-height:1.6;color:{theme.text};"><!-- HISTORY_TITLE_{index} -->往期文章标题 {index}</p><p style="margin:4px 0 0;font-size:12px;line-height:1.5;color:{theme.primary};"><!-- HISTORY_LINK_{index} -->阅读全文</p></div>')
-    if qr_data_uri:
-        qr = f'<img data-qr-code="true" src="{qr_data_uri}" alt="公众号二维码" style="display:block;width:144px;height:144px;margin:18px auto 0;object-fit:contain;" />'
-    else:
-        qr = '<!-- QR_CODE_IMAGE_BASE64_PLACEHOLDER --><div data-qr-placeholder="true" style="display:flex;width:142px;height:142px;margin:18px auto 0;align-items:center;justify-content:center;border:1px solid #c8c8c8;background:#ffffff;font-size:14px;color:#888888;">二维码</div>'
-    return f'<footer data-fixed-footer="true" style="padding:34px 24px 40px;border-top:1px solid {theme.border};"><section style="margin:0 0 30px;"><p style="margin:0 0 16px;font:700 16px {LABEL_FONT};letter-spacing:2px;color:{theme.primary};">MORE TO READ</p>{"".join(history)}</section><section style="padding:24px 18px;text-align:center;background:{theme.surface};border:1px solid {theme.border};"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.text};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
+    qr = f'<img data-qr-code="true" src="{qr_data_uri}" alt="公众号二维码" style="display:block;width:144px;height:144px;margin:18px auto 0;object-fit:contain;" />'
+    if theme.variant == "kami":
+        history = []
+        for index in range(1, 4):
+            history.append(f'<div data-history-item="{index}" style="margin:0;padding:16px 0;border-top:1px solid {theme.border};"><p style="margin:0 0 5px;font:700 11px {LABEL_FONT};color:{theme.primary};">READ / {index:02d}</p><p style="margin:0;font-size:15px;line-height:1.65;color:{theme.text};"><!-- HISTORY_TITLE_{index} -->往期文章标题 {index}</p><p style="margin:4px 0 0;font-size:12px;line-height:1.5;color:{theme.muted};"><!-- HISTORY_LINK_{index} -->阅读全文</p></div>')
+        return f'<footer data-fixed-footer="true" style="padding:40px 28px 44px;background:{theme.surface};border-top:2px solid {theme.primary};"><section style="margin:0 0 30px;"><p style="margin:0 0 8px;font:700 12px {LABEL_FONT};color:{theme.primary};">MORE TO READ</p>{"".join(history)}</section><section style="padding:24px 0 0;text-align:center;border-top:1px solid {theme.border};"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.text};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
+    if theme.variant == "esther":
+        history = []
+        for index in range(1, 4):
+            history.append(f'<div data-history-item="{index}" style="margin:0 0 11px;padding:15px 16px;background:{theme.surface};border:1px solid {theme.border};border-radius:12px;"><p style="margin:0;font-size:15px;line-height:1.65;color:{theme.text};"><!-- HISTORY_TITLE_{index} -->往期文章标题 {index}</p><p style="margin:4px 0 0;font-size:12px;line-height:1.5;color:#e84a5f;"><!-- HISTORY_LINK_{index} -->阅读全文</p></div>')
+        return f'<footer data-fixed-footer="true" style="padding:38px 24px 42px;background:#faf6eb;border-top:1px solid {theme.border};"><section style="margin:0 0 30px;"><p style="margin:0 0 16px;font:700 13px {LABEL_FONT};color:{theme.primary};">MORE NOTES</p>{"".join(history)}</section><section style="padding:24px 18px;text-align:center;background:{theme.surface};border:2px solid {theme.secondary};border-radius:14px;"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.text};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
+    if theme.variant == "punk":
+        history = []
+        for index in range(1, 4):
+            history.append(f'<div data-history-item="{index}" style="margin:0 0 10px;padding:14px 15px;background:#f7faff;border-left:5px solid {theme.primary};"><p style="margin:0 0 5px;font:700 11px {LABEL_FONT};color:{theme.primary};">READ / {index:02d}</p><p style="margin:0;font-size:15px;line-height:1.65;color:{theme.text};"><!-- HISTORY_TITLE_{index} -->往期文章标题 {index}</p><p style="margin:4px 0 0;font-size:12px;line-height:1.5;color:{theme.primary};"><!-- HISTORY_LINK_{index} -->阅读全文</p></div>')
+        return f'<footer data-fixed-footer="true" style="padding:36px 22px 42px;background:#ffffff;border-top:9px solid {theme.primary};"><section style="margin:0 0 30px;"><p style="margin:0 0 16px;font:700 13px {LABEL_FONT};color:{theme.primary};">MORE PRACTICE</p>{"".join(history)}</section><section style="padding:24px 18px;text-align:center;background:{theme.surface};border-top:5px solid {theme.secondary};"><p style="margin:0;font-size:17px;font-weight:700;color:{theme.primary};">关注公众号</p><p style="margin:7px 0 0;font-size:13px;line-height:1.6;color:{theme.muted};">长按识别二维码，阅读更多内容</p>{qr}</section></footer>'
+    raise ValueError(f"unsupported theme variant: {theme.variant}")
 
 
 def render_html(
@@ -540,11 +586,11 @@ def render_html(
     theme_key: str,
     subtitle: str = "",
     author: str = "",
-    qr_data_uri: str = "",
+    qr_data_uri: str | None = None,
     preview_fonts: bool = False,
     font_base: str = "assets/fonts",
     embedded_fonts: bool = False,
-    wechat_mode: bool = False,
+    wechat_mode: bool = True,
 ) -> str:
     theme = THEMES[canonical_theme(theme_key)]
     body_blocks = list(blocks)
@@ -554,10 +600,11 @@ def render_html(
         body_blocks.pop(0)
     if not title:
         title = "未命名文章"
+    if not qr_data_uri:
+        qr_data_uri = default_qr_data_uri()
 
     rendered: list[str] = []
     chapter = 0
-    first_paragraph = True
     for block in body_blocks:
         if block.kind == "heading":
             level = 2 if block.level == 1 else block.level
@@ -565,8 +612,7 @@ def render_html(
                 chapter += 1
             rendered.append(_heading(theme, block.text, level, max(chapter, 1)))
         elif block.kind == "paragraph":
-            rendered.append(_paragraph(theme, block.text, theme.variant == "magazine" and first_paragraph))
-            first_paragraph = False
+            rendered.append(_paragraph(theme, block.text))
         elif block.kind == "quote":
             rendered.append(_quote(theme, block.text))
         elif block.kind == "list":
@@ -576,9 +622,16 @@ def render_html(
         elif block.kind == "image":
             rendered.append(_image(theme, block))
         elif block.kind == "code":
-            rendered.append(f'<pre style="margin:26px 0;padding:18px;overflow-x:auto;border:1px solid {theme.border};background:{theme.surface};font-size:14px;line-height:1.7;color:{theme.text};white-space:pre-wrap;word-break:break-word;"><code style="font-family:Consolas,monospace;">{html.escape(block.text)}</code></pre>')
+            rendered.append(_code(theme, block))
         elif block.kind == "divider":
-            rendered.append(f'<hr style="height:1px;margin:34px 0;border:0;background:{theme.border};" />')
+            if theme.variant == "kami":
+                rendered.append(f'<div style="margin:36px 0;text-align:center;"><span style="display:inline-block;width:34px;height:1px;background:{theme.border};"></span><span style="display:inline-block;width:5px;height:5px;margin:0 9px;border:1px solid {theme.primary};transform:rotate(45deg);"></span><span style="display:inline-block;width:34px;height:1px;background:{theme.border};"></span></div>')
+            elif theme.variant == "esther":
+                rendered.append(f'<div style="margin:36px 0;text-align:center;"><span style="display:inline-block;width:8px;height:8px;margin:0 4px;border-radius:50%;background:{theme.primary};"></span><span style="display:inline-block;width:8px;height:8px;margin:0 4px;border-radius:50%;background:{theme.secondary};"></span><span style="display:inline-block;width:8px;height:8px;margin:0 4px;border-radius:50%;background:#e84a5f;"></span></div>')
+            elif theme.variant == "punk":
+                rendered.append(f'<div style="display:flex;align-items:center;gap:5px;margin:34px 0;"><span style="display:block;width:40px;height:5px;background:{theme.secondary};"></span><span style="display:block;flex:1;height:1px;background:{theme.primary};"></span><span style="display:block;width:12px;height:5px;background:{theme.primary};"></span></div>')
+            else:
+                raise ValueError(f"unsupported theme variant: {theme.variant}")
 
     font_css = ""
     font_attr = ""
@@ -607,7 +660,7 @@ def render_html(
 <title>{html.escape(title)}</title>
 {font_css}
 </head>
-<body data-theme="{theme.key}"{font_attr} style="max-width:677px;margin:0 auto;padding:0;background:{theme.background};font-family:{BODY_FONT};color:{theme.text};line-height:1.85;">
+<body data-theme="{theme.key}" data-layout-version="{LAYOUT_VERSION}"{font_attr} style="max-width:677px;margin:0 auto;padding:0;background:{theme.background};font-family:{BODY_FONT};color:{theme.text};line-height:1.85;">
 {_header(theme, title, subtitle, author)}
 <main style="padding:10px 26px 34px;">
 {''.join(rendered)}
@@ -627,11 +680,7 @@ def convert(
     subtitle: str = "",
     author: str = "",
     qr_path: Path | None = None,
-    preview_fonts: bool = False,
-    font_base: str = "assets/fonts",
     validate: bool = True,
-    embedded_fonts: bool = True,
-    wechat_mode: bool = False,
 ) -> Path:
     blocks, document_title = read_input(input_path)
     blocks = list(blocks)
@@ -648,11 +697,16 @@ def convert(
     if blocks and blocks[0].kind == "heading" and blocks[0].level == 1:
         inferred_title = blocks[0].text
     final_title = title or inferred_title or document_title or input_path.stem
-    qr_data = image_to_data_uri(str(qr_path), qr_path.parent) if qr_path else ""
+    qr_data = image_to_data_uri(str(qr_path), qr_path.parent) if qr_path else default_qr_data_uri()
     canonical = canonical_theme(theme_key)
     output = render_html(
-        blocks, final_title, canonical, subtitle, author, qr_data,
-        preview_fonts, font_base, embedded_fonts, wechat_mode,
+        blocks,
+        final_title,
+        canonical,
+        subtitle,
+        author,
+        qr_data,
+        wechat_mode=True,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(output, encoding="utf-8")
@@ -662,8 +716,6 @@ def convert(
         errors = validate_html(
             output,
             theme=canonical,
-            allow_preview=preview_fonts or embedded_fonts,
-            wechat_mode=wechat_mode,
         )
         if errors:
             output_path.unlink(missing_ok=True)
@@ -675,18 +727,14 @@ def convert(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", nargs="?", type=Path, help=".docx, .md, .markdown, or .txt input")
-    parser.add_argument("--theme", default="classic", help="theme key or legacy alias")
+    parser.add_argument("--theme", default="kami", help="theme key")
     parser.add_argument("--output", "-o", type=Path, help="output HTML path")
     parser.add_argument("--title", default="", help="override article title")
     parser.add_argument("--subtitle", default="", help="optional subtitle")
     parser.add_argument("--author", default="", help="optional author; never inferred")
     parser.add_argument("--qr", type=Path, help="optional local QR image")
-    font_mode = parser.add_mutually_exclusive_group()
-    font_mode.add_argument("--wechat", action="store_true", help="omit @font-face for WeChat editor compatibility")
-    font_mode.add_argument("--preview-fonts", action="store_true", help="load font files by local URL instead of embedding subsets")
-    parser.add_argument("--font-base", help="font URL base used by --preview-fonts; defaults to a path relative to the output")
     parser.add_argument("--no-validate", action="store_true", help="skip output validation")
-    parser.add_argument("--list-themes", action="store_true", help="list themes and compatibility aliases")
+    parser.add_argument("--list-themes", action="store_true", help="list available themes")
     return parser
 
 
@@ -696,7 +744,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.list_themes:
         for key, theme in THEMES.items():
             print(f"{key:14} {theme.name} - {theme.description}")
-        print("aliases:", ", ".join(f"{old}->{new}" for old, new in ALIASES.items()))
         return 0
     if args.input is None:
         parser.error("input is required unless --list-themes is used")
@@ -704,16 +751,8 @@ def main(argv: list[str] | None = None) -> int:
     if not input_path.is_file():
         parser.error(f"input file not found: {input_path}")
     canonical = canonical_theme(args.theme)
-    output_path = args.output or input_path.with_name(f"{input_path.stem}_{canonical}.html")
+    output_path = args.output or input_path.with_name(f"{input_path.stem}_{canonical}.wechat.html")
     output_path = output_path.resolve()
-    font_base = args.font_base
-    if args.preview_fonts and not font_base:
-        font_dir = Path(__file__).resolve().parents[1] / "assets" / "fonts"
-        try:
-            font_base = Path(os.path.relpath(font_dir, output_path.parent)).as_posix()
-        except ValueError:
-            # Windows cannot form a relative path across drive letters.
-            font_base = font_dir.as_uri()
     try:
         result = convert(
             input_path,
@@ -723,11 +762,7 @@ def main(argv: list[str] | None = None) -> int:
             args.subtitle,
             args.author,
             args.qr.resolve() if args.qr else None,
-            args.preview_fonts,
-            font_base or "assets/fonts",
             not args.no_validate,
-            not args.wechat and not args.preview_fonts,
-            args.wechat,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

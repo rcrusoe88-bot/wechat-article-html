@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import sys
 import tempfile
 import unittest
@@ -11,9 +12,10 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from convert import (  # noqa: E402
-    ALIASES,
     Block,
+    DEFAULT_QR_PATH,
     LABEL_FONT,
+    LAYOUT_VERSION,
     THEMES,
     canonical_theme,
     parse_docx,
@@ -55,31 +57,123 @@ print("quality")
 
 
 class ConverterTests(unittest.TestCase):
-    def test_theme_set_and_legacy_aliases(self) -> None:
-        self.assertEqual(len(THEMES), 10)
-        self.assertEqual(canonical_theme("orange"), "vibrant")
-        self.assertEqual(canonical_theme("nature"), "minimal")
-        self.assertEqual(canonical_theme("blue"), "academic-blue")
-        self.assertEqual(canonical_theme("morandi"), "fresh")
-        self.assertEqual(set(ALIASES.values()), {"vibrant", "minimal", "academic-blue", "fresh"})
+    def test_theme_set_is_exactly_three(self) -> None:
+        self.assertEqual(set(THEMES), {"kami", "esther", "punk"})
+        for legacy in (
+            "classic",
+            "magazine",
+            "fresh",
+            "vibrant",
+            "swiss",
+            "minimal",
+            "chinese",
+            "narrative",
+            "academic-blue",
+            "cell",
+            "signal",
+            "orange",
+            "nature",
+            "blue",
+            "morandi",
+        ):
+            with self.assertRaises(ValueError):
+                canonical_theme(legacy)
+
+    def test_kami_theme_uses_paper_and_chapter_components(self) -> None:
+        blocks = parse_markdown(SAMPLE_MD, ROOT)
+        document = render_html(blocks, "基准文章标题", "kami", wechat_mode=True)
+        self.assertEqual(validate_html(document, "kami"), [])
+        self.assertIn("KAMI / NOTE", document)
+        self.assertIn("CHAPTER", document)
+        self.assertIn("TAKEAWAY", document)
+        self.assertNotIn("font-family", document)
+
+    def test_esther_theme_uses_component_card_components(self) -> None:
+        blocks = parse_markdown(SAMPLE_MD, ROOT)
+        document = render_html(blocks, "基准文章标题", "esther", wechat_mode=True)
+        self.assertEqual(validate_html(document, "esther"), [])
+        self.assertIn("ESTHER / COMPONENTS", document)
+        self.assertIn("COMPONENT", document)
+        self.assertIn("PULL QUOTE", document)
+        self.assertNotIn("font-family", document)
+
+    def test_punk_theme_uses_practical_layout_components(self) -> None:
+        blocks = parse_markdown(SAMPLE_MD, ROOT)
+        document = render_html(blocks, "基准文章标题", "punk", wechat_mode=True)
+        self.assertEqual(validate_html(document, "punk"), [])
+        self.assertIn("PUNK 微排", document)
+        self.assertIn("PART", document)
+        self.assertIn("PRACTICE", document)
+        self.assertNotIn("font-family", document)
 
     def test_all_themes_render_and_validate(self) -> None:
         blocks = parse_markdown(SAMPLE_MD, ROOT)
         outputs = []
         for key in THEMES:
-            document = render_html(blocks, "基准文章标题", key)
+            document = render_html(blocks, "基准文章标题", key, wechat_mode=True)
             self.assertEqual(validate_html(document, key), [], key)
             self.assertEqual(document.count("基准文章标题"), 2)  # title element and <title>
             self.assertIn("&lt;img src=&quot;https://example.com/a.png&quot;&gt;", document)
+            self.assertNotIn("font-family", document)
             outputs.append(document)
         self.assertEqual(len(set(outputs)), len(THEMES))
+
+    def test_rendering_is_byte_stable(self) -> None:
+        blocks = parse_markdown(SAMPLE_MD, ROOT)
+        for key in THEMES:
+            first = render_html(blocks, "基准文章标题", key, wechat_mode=True)
+            second = render_html(blocks, "基准文章标题", key, wechat_mode=True)
+            self.assertEqual(first.encode("utf-8"), second.encode("utf-8"), key)
+
+    def test_layout_contract_is_versioned_and_exact(self) -> None:
+        document = render_html(parse_markdown("正文", ROOT), "标题", "kami", wechat_mode=True)
+        body = re.search(r"<body\b[^>]*>", document)
+        self.assertIsNotNone(body)
+        body_tag = body.group(0)
+        self.assertIn(f'data-layout-version="{LAYOUT_VERSION}"', body_tag)
+        self.assertIn("max-width:677px", body_tag)
+        self.assertIn("width:144px;height:144px", document)
+        self.assertIn('data-fixed-footer="true"', document)
+        self.assertIn('data-qr-code="true"', document)
+        self.assertIn(DEFAULT_QR_PATH.name, str(DEFAULT_QR_PATH))
+
+    def test_long_text_and_unbroken_strings_wrap_anywhere(self) -> None:
+        long_title = "超长标题" * 40
+        long_word = "A" * 240
+        document = render_html(parse_markdown(long_word, ROOT), long_title, "punk", wechat_mode=True)
+        self.assertIn("overflow-wrap:anywhere", document)
+        self.assertGreaterEqual(document.count("overflow-wrap:anywhere"), 2)
+
+    def test_wide_tables_use_scrollable_wrapper(self) -> None:
+        table = "\n".join(
+            [
+                "| A | B | C | D | E | F |",
+                "|---|---|---|---|---|---|",
+                "| 1 | 2 | 3 | 4 | 5 | 6 |",
+            ]
+        )
+        for key in THEMES:
+            document = render_html(parse_markdown(table, ROOT), "表格", key, wechat_mode=True)
+            wrapper_start = document.rfind("<div", 0, document.find("<table"))
+            wrapper = document[wrapper_start : document.find("<table")]
+            self.assertIn("overflow-x:auto", wrapper, key)
+            self.assertIn("max-width:100%", wrapper, key)
+
+    def test_all_themes_use_an_actual_qr_image(self) -> None:
+        blocks = parse_markdown("正文", ROOT)
+        for key in THEMES:
+            document = render_html(blocks, "标题", key, wechat_mode=True)
+            self.assertIn('data-qr-code="true"', document)
+            self.assertIn("data:image/png;base64,", document)
+            self.assertNotIn("data-qr-placeholder", document)
+            self.assertNotIn("QR_CODE_IMAGE_BASE64_PLACEHOLDER", document)
 
     def test_list_and_quote_close_before_following_blocks(self) -> None:
         blocks = parse_markdown("- item\n## heading\n> quote\nafter", ROOT)
         self.assertEqual([block.kind for block in blocks], ["list", "heading", "quote", "paragraph"])
-        document = render_html(blocks, "T", "classic")
+        document = render_html(blocks, "T", "kami", wechat_mode=True)
         self.assertNotIn("<ul", document[document.find("<h2"):])
-        self.assertEqual(validate_html(document, "classic"), [])
+        self.assertEqual(validate_html(document, "kami"), [])
 
     def test_external_markdown_image_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
@@ -104,30 +198,14 @@ class ConverterTests(unittest.TestCase):
         self.assertIn("来源：公开资料", image.caption)
         self.assertEqual(blocks[-1].kind, "quote")
 
-    def test_preview_requires_explicit_validation_mode(self) -> None:
-        blocks = parse_markdown("正文", ROOT)
-        preview = render_html(blocks, "预览", "classic", preview_fonts=True, font_base="../assets/fonts")
-        self.assertTrue(validate_html(preview, "classic"))
-        self.assertEqual(validate_html(preview, "classic", allow_preview=True), [])
-
-    def test_embedded_fonts_are_portable_subsets(self) -> None:
-        blocks = parse_markdown("正文 ABC", ROOT)
-        document = render_html(blocks, "嵌入字体", "classic", embedded_fonts=True)
-        self.assertIn('data-embedded-fonts="true"', document)
-        self.assertEqual(document.count("data:font/woff2;base64,"), 2)
-        self.assertNotIn("assets/fonts", document)
-        self.assertIn("font-family:'Caveat', 'XuanZongTi'", document)
-        self.assertIn('font-weight:400 700', document)
-        self.assertEqual(validate_html(document, "classic", allow_preview=True), [])
-
-    def test_wechat_mode_removes_all_custom_font_declarations(self) -> None:
+    def test_wechat_output_is_default_and_removes_all_custom_font_declarations(self) -> None:
         blocks = parse_markdown("English 123 中文", ROOT)
-        document = render_html(blocks, "标题", "classic", wechat_mode=True)
+        document = render_html(blocks, "标题", "kami")
         self.assertNotIn("font-family", document)
         self.assertNotIn("Caveat", document)
         self.assertNotIn("XuanZongTi", document)
         self.assertNotIn(LABEL_FONT, document)
-        self.assertEqual(validate_html(document, "classic", wechat_mode=True), [])
+        self.assertEqual(validate_html(document, "kami"), [])
 
     def test_docx_parses_heading_table_and_image(self) -> None:
         try:

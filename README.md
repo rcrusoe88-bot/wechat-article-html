@@ -1,65 +1,53 @@
 # anything-to-html
 
-将 Word、Markdown 和纯文本转换为微信公众号兼容的全内联 HTML。
+将 Word、Markdown 和纯文本转换为微信公众号兼容的全内联 HTML。项目只交付公众号版 `*.wechat.html`。
 
 ## 功能
 
-- 10 个独立主题，兼容旧参数 `orange`、`blue`、`nature` 和 `morandi`
+- 固定提供 `kami`、`esther`、`punk` 三套主题
 - Word 正文、表格和内嵌图片按文档顺序提取
 - Markdown 标题、列表、引用、代码、表格和本地图片转换
 - 正文图片与二维码自动转为 base64
-- 默认将 `Caveat Bold` 与 `XuanZongTi`（玄宗体）按文章字符子集化并内嵌
-- 不依赖系统安装字体、网络字体或 Skill 所在路径
-- `--wechat` 生成严格全内联、无 `<style>`、无 `font-family` 的微信公众号原生字体版本
-- 转换完成后自动执行 HTML 与主题契约验证
+- 输出不声明 `font-family`，直接跟随微信公众号阅读端的原生字体
+- 固定 677px 页面、组件尺寸和二维码占位，转换前后自动执行版式契约验证
 
 ## 使用
 
 ```powershell
 pip install -r requirements.txt
-python scripts/convert.py article.docx --theme academic-blue --output article.html
-python scripts/convert.py article.md --theme magazine --output article.html
-python scripts/convert.py article.md --theme magazine --output article.wechat.html --wechat
+python scripts/convert.py article.docx --theme kami
+python scripts/convert.py article.md --theme esther
+python scripts/convert.py article.md --theme punk
 python scripts/convert.py --list-themes
 ```
 
-默认生成的 HTML 已包含两个 WOFF2 字体子集。需要检查原始本地字体文件时可使用：
+默认主题是 `kami`。未传入 `--output` 时，输出文件名为 `原文件名_主题名.wechat.html`。
 
-```powershell
-python scripts/convert.py article.md --theme classic --output article.preview.html --preview-fonts
-```
-
-`--preview-fonts` 会自动计算输出文件到字体目录的相对路径。默认嵌入字体版与该本地预览版都包含 `<style>@font-face</style>`；微信公众号版本必须加 `--wechat`，并交给微信的默认字体。
+如果没有传入 `--qr`，转换器会使用 `assets/images/qr-placeholder.png` 作为二维码图片占位；传入 `--qr` 时可替换为实际二维码。所有输出都会移除自定义字体声明，以保证粘贴到公众号后台后稳定使用微信原生字体。
 
 ## 主题展示
 
-下面的展示图使用 `Caveat Bold` 与 `XuanZongTi`（玄宗体）生成。点击“查看 HTML”会打开与默认 CLI 完全一致的可移植版：它嵌入两款字体的 WOFF2 字集，无网络依赖。上传微信公众号时，请使用 CLI 的 `--wechat` 模式生成严格全内联版。
+下面的展示图由同一份示例文章稳定生成。三个链接都是可直接粘贴到微信公众号后台的版本。
+
+| 主题 | 风格 | 适合内容 | 公众号版 |
+|---|---|---|---|
+| **Kami 纸感 · `kami`** | 纸面、章节线、研究归档感 | 研究报告、深度长文、知识归档 | [打开模板](examples/showcase/kami.wechat.html) |
+| **Esther 组件 · `esther`** | 圆角卡片、组件编号、轻快配色 | 设计说明、产品拆解、轻松解释 | [打开模板](examples/showcase/esther.wechat.html) |
+| **Punk 微排 · `punk`** | 蓝黄工具栏、强分区、步骤清单 | 工具教程、清单、实操步骤 | [打开模板](examples/showcase/punk.wechat.html) |
 
 <table>
 <tr>
-<td align="center"><strong>经典简约 · classic</strong><br><img src="examples/showcase/images/classic.png" width="320" alt="经典简约主题预览"><br><a href="examples/showcase/classic.html">查看 HTML</a></td>
-<td align="center"><strong>杂志精品 · magazine</strong><br><img src="examples/showcase/images/magazine.png" width="320" alt="杂志精品主题预览"><br><a href="examples/showcase/magazine.html">查看 HTML</a></td>
+<td align="center"><strong>Kami 纸感 · kami</strong><br><img src="examples/showcase/images/kami.png" width="320" alt="Kami 纸感主题预览"></td>
+<td align="center"><strong>Esther 组件 · esther</strong><br><img src="examples/showcase/images/esther.png" width="320" alt="Esther 组件主题预览"></td>
 </tr>
 <tr>
-<td align="center"><strong>清新文艺 · fresh</strong><br><img src="examples/showcase/images/fresh.png" width="320" alt="清新文艺主题预览"><br><a href="examples/showcase/fresh.html">查看 HTML</a></td>
-<td align="center"><strong>活力橙黄 · vibrant</strong><br><img src="examples/showcase/images/vibrant.png" width="320" alt="活力橙黄主题预览"><br><a href="examples/showcase/vibrant.html">查看 HTML</a></td>
-</tr>
-<tr>
-<td align="center"><strong>瑞士网格 · swiss</strong><br><img src="examples/showcase/images/swiss.png" width="320" alt="瑞士网格主题预览"><br><a href="examples/showcase/swiss.html">查看 HTML</a></td>
-<td align="center"><strong>极简学术 · minimal</strong><br><img src="examples/showcase/images/minimal.png" width="320" alt="极简学术主题预览"><br><a href="examples/showcase/minimal.html">查看 HTML</a></td>
-</tr>
-<tr>
-<td align="center"><strong>中式国风 · chinese</strong><br><img src="examples/showcase/images/chinese.png" width="320" alt="中式国风主题预览"><br><a href="examples/showcase/chinese.html">查看 HTML</a></td>
-<td align="center"><strong>叙事编辑 · narrative</strong><br><img src="examples/showcase/images/narrative.png" width="320" alt="叙事编辑主题预览"><br><a href="examples/showcase/narrative.html">查看 HTML</a></td>
-</tr>
-<tr>
-<td align="center"><strong>学术深蓝 · academic-blue</strong><br><img src="examples/showcase/images/academic-blue.png" width="320" alt="学术深蓝主题预览"><br><a href="examples/showcase/academic-blue.html">查看 HTML</a></td>
-<td align="center"><strong>Cell 编辑风 · cell</strong><br><img src="examples/showcase/images/cell.png" width="320" alt="Cell 编辑风主题预览"><br><a href="examples/showcase/cell.html">查看 HTML</a></td>
+<td align="center"><strong>Punk 微排 · punk</strong><br><img src="examples/showcase/images/punk.png" width="320" alt="Punk 微排主题预览"></td>
+<td align="center"><strong>稳定输出</strong><br><span>固定宽度、固定二维码尺寸、固定页脚结构与确定性 HTML</span></td>
 </tr>
 </table>
 
-完整展示清单和每个文件的校验信息见 [`examples/showcase/manifest.json`](examples/showcase/manifest.json)。
+每次构建都写入 `examples/showcase/manifest.json`，其中包含三套公众号模板的文件名、字节数与 SHA-256，便于检查输出是否发生变化。
 
 ## 许可证
 
-代码和文档使用 MIT License。`assets/fonts/` 中的字体由项目使用者提供，不随项目代码重新授权，详见 `THIRD_PARTY_NOTICES.md`。
+代码和文档使用 MIT License。第三方资产说明见 `THIRD_PARTY_NOTICES.md`。

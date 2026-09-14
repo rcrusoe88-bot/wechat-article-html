@@ -17,6 +17,7 @@ class SkillPackageTests(unittest.TestCase):
         self.assertTrue((ROOT / "agents" / "openai.yaml").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "Caveat-Bold.ttf").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi.otf").is_file())
+        self.assertTrue((ROOT / "assets" / "images" / "qr-placeholder.png").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "Caveat-OFL.txt").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "XuanZongTi-OFL.txt").is_file())
         self.assertGreater((ROOT / "assets" / "fonts" / "XuanZongTi.otf").stat().st_size, 1_000_000)
@@ -40,16 +41,36 @@ class SkillPackageTests(unittest.TestCase):
         self.assertNotIn("PreTesto", combined)
         self.assertNotIn("cdn.jsdelivr.net", combined)
 
-    def test_example_builders_use_portable_font_output(self) -> None:
-        for script in (ROOT / "scripts" / "build_gallery.py", ROOT / "scripts" / "build_showcase.py"):
-            self.assertIn("embedded_fonts=True", script.read_text(encoding="utf-8"), script.name)
+    def test_only_three_theme_keys_are_documented(self) -> None:
+        docs = "\n".join(
+            (ROOT / path).read_text(encoding="utf-8")
+            for path in ("README.md", "SKILL.md", "references/themes.md")
+        )
+        for legacy in ("classic", "magazine", "fresh", "vibrant", "swiss", "minimal", "chinese", "narrative", "academic-blue", "cell", "signal", "orange", "nature", "blue", "morandi"):
+            self.assertNotIn(f"`{legacy}`", docs, legacy)
+        for key in ("kami", "esther", "punk"):
+            self.assertIn(f"`{key}`", docs, key)
 
-    def test_default_skill_contract_requires_embedded_fonts(self) -> None:
+    def test_example_builders_emit_wechat_only(self) -> None:
+        for script in (ROOT / "scripts" / "build_gallery.py", ROOT / "scripts" / "build_showcase.py"):
+            content = script.read_text(encoding="utf-8")
+            self.assertIn("wechat_mode=True", content, script.name)
+            self.assertNotIn("embedded_fonts=True", content, script.name)
+            self.assertNotIn("preview_fonts=True", content, script.name)
+
+    def test_skill_contract_is_wechat_only(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         prompt = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
-        self.assertIn('data-embedded-fonts="true"', skill)
-        self.assertIn("除非用户明确指定微信后台粘贴", skill)
-        self.assertIn("不要使用 --wechat", prompt)
+        self.assertIn("微信公众号", skill)
+        self.assertIn("font-family", skill)
+        self.assertNotIn("--wechat", skill)
+        self.assertIn("微信公众号", prompt)
+        self.assertNotIn("不要使用 --wechat", prompt)
+
+    def test_showcase_contains_no_non_wechat_html(self) -> None:
+        showcase = ROOT / "examples" / "showcase"
+        html_files = sorted(path.name for path in showcase.glob("*.html"))
+        self.assertEqual(html_files, ["esther.wechat.html", "kami.wechat.html", "punk.wechat.html"])
 
 
 if __name__ == "__main__":

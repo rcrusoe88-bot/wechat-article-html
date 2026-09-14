@@ -2,14 +2,15 @@
 
 ## 自动门槛
 
-`--wechat` 发布版必须通过 `scripts/validate_html.py`：
+所有公众号版 `*.wechat.html` 必须通过 `scripts/validate_html.py`：
 
 - 没有 `<style>`、外部 CSS、JavaScript 或事件属性；
 - 图片全部为 base64 data URI；
 - 没有本地路径、相对图片路径或网络字体；
 - 表格结构符合微信公众号限制；
 - 所有可见排版元素具有内联样式；
-- 包含主题标识、3 条往期精选和二维码模块；不声明字体栈；
+- 包含主题标识、3 条往期精选和二维码模块；
+- 不声明 `font-family`，不包含 `Caveat`、`XuanZongTi`、`@font-face` 或字体 data URI；
 - HTML 标签嵌套可被标准解析器完整闭合。
 
 ## 内容质量
@@ -28,8 +29,8 @@
 2. 677px 内容视口标题不截断，英文长词可换行。
 3. 主题之间不仅换色：标题区、章节、引用、列表和表格至少三类组件具有不同结构语言。
 4. 字号、间距和边框不会因 hover、缺图或占位内容发生布局跳动。
-5. `XuanZongTi`（玄宗体）承担中文阅读，`Caveat Bold` 承担英文和数字。必须以 `Caveat -> XuanZongTi` 字体栈输出，不得让英文落入系统行书体或街线体。
+5. 最终 HTML 不指定字体，中文与西文都由微信公众号阅读端原生字体渲染。
 
 ## 发布前检查
 
-默认输出必须带 `data-embedded-fonts="true"`，包含两个 WOFF2 data URI，且不依赖本地路径。除非用户明确要粘贴到微信公众号后台，不得生成 `--wechat` 版本；该版本不包含嵌入字体，且不得出现 `font-family`、`Caveat` 或 `XuanZongTi`。
+最终交付只能是 `*.wechat.html`。不得出现 `font-family`、`Caveat`、`XuanZongTi`、`@font-face`、字体 data URI 或本地字体路径。

@@ -13,84 +13,25 @@
   },
   "themes": [
     {
-      "key": "classic",
-      "name": "经典简约",
-      "publish": "classic.html",
-      "preview": "classic.preview.html",
-      "bytes": 769072,
-      "sha256": "47c0b8140ef5fc56001de0905424a1d70a33a0c89305f14e7f78bfbf091d3266"
+      "key": "kami",
+      "name": "Kami 纸感",
+      "wechat": "kami.wechat.html",
+      "bytes": 11659,
+      "sha256": "8607377708572d2437299c4ecc492551409683301e456562ab847b7f8bb32d5a"
     },
     {
-      "key": "magazine",
-      "name": "杂志精品",
-      "publish": "magazine.html",
-      "preview": "magazine.preview.html",
-      "bytes": 770168,
-      "sha256": "bf00a8cbd4d866ee43b8ef711e9174c878c0ca887173538f9112ecf6276abc6a"
+      "key": "esther",
+      "name": "Esther 组件",
+      "wechat": "esther.wechat.html",
+      "bytes": 14162,
+      "sha256": "e764fcd1112fb35c52268c931477a37cf995be28e2b18aabe5069d93aab4387e"
     },
     {
-      "key": "fresh",
-      "name": "清新文艺",
-      "publish": "fresh.html",
-      "preview": "fresh.preview.html",
-      "bytes": 769660,
-      "sha256": "4413e90b3864473062e51c5b0a5bf6696311625e05783be2302738a4c2e48aed"
-    },
-    {
-      "key": "vibrant",
-      "name": "活力橙黄",
-      "publish": "vibrant.html",
-      "preview": "vibrant.preview.html",
-      "bytes": 769750,
-      "sha256": "1427ddeb84ede8e5a393727d4b1330b6a888435e3d356798d5bf3d96b7609c18"
-    },
-    {
-      "key": "swiss",
-      "name": "瑞士网格",
-      "publish": "swiss.html",
-      "preview": "swiss.preview.html",
-      "bytes": 769746,
-      "sha256": "01c150fe20fa7b5ffe35d8d92880d293286256a94f21eeb0a552f8e4107f2af0"
-    },
-    {
-      "key": "minimal",
-      "name": "极简学术",
-      "publish": "minimal.html",
-      "preview": "minimal.preview.html",
-      "bytes": 769473,
-      "sha256": "1a27a3ef5025aee95578e542ec69733d6207627ced6c7d4c9e401ca7a098ca27"
-    },
-    {
-      "key": "chinese",
-      "name": "中式国风",
-      "publish": "chinese.html",
-      "preview": "chinese.preview.html",
-      "bytes": 769455,
-      "sha256": "5d0658a8cb95261d44f3f3244be1fd1638748bb251da1a90b8f89484b2dba612"
-    },
-    {
-      "key": "narrative",
-      "name": "叙事编辑",
-      "publish": "narrative.html",
-      "preview": "narrative.preview.html",
-      "bytes": 769659,
-      "sha256": "e3f8cf0933187e02f22381d762827ee06bcbdeaf6ede42a0ebac0e2a9000bc72"
-    },
-    {
-      "key": "academic-blue",
-      "name": "学术深蓝",
-      "publish": "academic-blue.html",
-      "preview": "academic-blue.preview.html",
-      "bytes": 769484,
-      "sha256": "b2360ac9395bc380470903af5d49fe197d7d0caf1b101e612f3d56b7f7cabf9d"
-    },
-    {
-      "key": "cell",
-      "name": "Cell 编辑风",
-      "publish": "cell.html",
-      "preview": "cell.preview.html",
-      "bytes": 769632,
-      "sha256": "ebd10fb21ad6ea87175d079f34fc145e097cf99bab0e670acdf55d67985039ae"
+      "key": "punk",
+      "name": "Punk 微排",
+      "wechat": "punk.wechat.html",
+      "bytes": 13844,
+      "sha256": "1cabdc72cbe53b902e388e26861d3ac700738080ef9f07ee432d7df4c82eab37"
     }
   ]
 }
