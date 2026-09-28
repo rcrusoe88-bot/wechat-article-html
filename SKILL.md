@@ -1,9 +1,9 @@
 ---
-name: anything-to-html
+name: wechat-article-html
 description: 将 Word、Markdown 或纯文本转换为可直接粘贴到微信公众号后台的全内联 HTML。适用于公众号文章排版、三套主题套版、docx 图片内嵌、二维码图片占位与版式稳定性验证。
 ---
 
-# Anything to HTML
+# wechat-article-html
 
 将内容转换为只面向微信公众号的 `*.wechat.html`。输出不声明 `font-family`，粘贴到公众号后台后由微信阅读端使用原生字体。
 

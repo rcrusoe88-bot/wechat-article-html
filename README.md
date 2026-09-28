@@ -1,4 +1,4 @@
-# anything-to-html
+# wechat-article-html
 
 将 Word、Markdown 和纯文本转换为微信公众号兼容的全内联 HTML。项目只交付公众号版 `*.wechat.html`。
 

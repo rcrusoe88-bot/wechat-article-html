@@ -13,6 +13,9 @@ from convert import THEMES, read_input, render_html
 from validate_html import validate_html
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path)
@@ -30,8 +33,12 @@ def main() -> int:
         subtitle = remaining.pop(0).text.removeprefix("副标题：").strip()
 
     output.mkdir(parents=True, exist_ok=True)
+    try:
+        source_rel = source.relative_to(ROOT).as_posix()
+    except ValueError:
+        source_rel = source.name
     manifest = {
-        "source": str(source),
+        "source": source_rel,
         "title": title,
         "subtitle": subtitle,
         "blocks": dict(Counter(block.kind for block in remaining)),
@@ -59,7 +66,7 @@ def main() -> int:
         )
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     readme_lines = [
-        "# anything-to-html 主题展示",
+        "# wechat-article-html 主题展示",
         "",
         f"源文档：`{source.name}`。只生成微信公众号版，不声明 `font-family`，粘贴后跟随微信读者端原生字体。共生成 {len(THEMES)} 个主题，不含外链图片或脚本。",
         "",

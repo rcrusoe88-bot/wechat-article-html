@@ -1,4 +1,4 @@
-# anything-to-html 主题展示
+# wechat-article-html 主题展示
 
 源文档：`sample.md`。只生成微信公众号版，不声明 `font-family`，粘贴后跟随微信读者端原生字体。共生成 3 个主题，不含外链图片或脚本。
 

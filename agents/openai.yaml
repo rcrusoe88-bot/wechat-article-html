@@ -1,4 +1,4 @@
 interface:
-  display_name: "Anything to HTML"
+  display_name: "wechat-article-html"
   short_description: "将 Word、Markdown 和文本转换为微信公众号原生字体 HTML"
   default_prompt: "把提供的内容转换为可直接粘贴到微信公众号后台的 HTML，并选择合适主题。只输出公众号版，不要声明任何字体。"

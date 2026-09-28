@@ -12,7 +12,7 @@ class SkillPackageTests(unittest.TestCase):
     def test_frontmatter_and_required_assets(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertTrue(skill.startswith("---\n"))
-        self.assertIn("name: anything-to-html", skill)
+        self.assertIn("name: wechat-article-html", skill)
         self.assertIn("description:", skill)
         self.assertTrue((ROOT / "agents" / "openai.yaml").is_file())
         self.assertTrue((ROOT / "assets" / "fonts" / "Caveat-Bold.ttf").is_file())
@@ -71,6 +71,15 @@ class SkillPackageTests(unittest.TestCase):
         showcase = ROOT / "examples" / "showcase"
         html_files = sorted(path.name for path in showcase.glob("*.html"))
         self.assertEqual(html_files, ["esther.wechat.html", "kami.wechat.html", "punk.wechat.html"])
+
+    def test_release_packaging_script(self) -> None:
+        import tempfile
+        from package_release import package_skill
+        with tempfile.TemporaryDirectory() as tmpdir:
+            zip_path = package_skill("1.0.0", Path(tmpdir))
+            self.assertTrue(zip_path.is_file())
+            self.assertEqual(zip_path.name, "wechat-article-html-v1.0.0.zip")
+            self.assertTrue((Path(tmpdir) / "wechat-article-html-v1.0.0.zip.sha256").is_file())
 
 
 if __name__ == "__main__":
